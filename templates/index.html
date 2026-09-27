@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#20211e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2efe7" media="(prefers-color-scheme: light)">
+<title>Cozy-Fi Studio</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+<style>html,body{margin:0;background:#20211e;color:#eee9df;color-scheme:dark} @media(prefers-color-scheme:light){html,body{background:#f2efe7;color:#34372f;color-scheme:light}}</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Monoton&amp;family=Orbitron:wght@600;800;900&amp;family=Permanent+Marker&amp;family=Space+Grotesk:wght@600;700&amp;display=swap">
+<script defer src="{{ url_for('static', filename='vendor/wavesurfer-7.12.12/wavesurfer.min.js') }}"></script>
+<script defer src="{{ url_for('static', filename='vendor/wavesurfer-7.12.12/regions.min.js') }}"></script>
+</head><body><div class="app-shell">
+
+<!-- 1. Stüdyo Başlığı (Header) -->
+<header class="masthead">
+  <div class="brand">
+    <div class="brand-badge">
+      <svg class="brand-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v20M17 5v14M7 9v6M22 10v4M2 11v2"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>Cozy-Fi <span class="brand-accent">Studio</span></h1>
+    </div>
+    <div class="status-pill" id="studioStatusPill" title="Sistem durumu">
+      <span class="status-dot"></span>
+      <span class="status-label" id="studioStatusLabel">Hazır</span>
+    </div>
+  </div>
+
+  <!-- Ana Çalışma Modu Seçici (Studio Mode Switcher) -->
+  <nav class="studio-modes" id="studioModes" aria-label="Çalışma Modları">
+    <button type="button" class="mode-tab active" data-mode="mix" title="Ses Mikseri, Parçalar ve Sahne">
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v6m0 4v8M12 3v11m0 4v3M19 3v3m0 4v11"/><path d="M2 9h6v4H2zM9 14h6v4H9zM16 6h6v4h-6z"/></svg><span class="mode-label">Miks & Sahne</span>
+    </button>
+    <button type="button" class="mode-tab" data-mode="lyrics" title="Şarkı Sözleri ve Zamanlama Masası">
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="mode-label">Sözler</span>
+    </button>
+    <button type="button" class="mode-tab" data-mode="videofx" title="VideoFX, Renk ve Görselleştirici">
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg><span class="mode-label">VideoFX</span>
+    </button>
+    <button type="button" class="mode-tab" data-mode="output" title="Video ve Ses Dışa Aktarma Ayarları">
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/></svg><span class="mode-label">Dışa Aktar</span>
+    </button>
+  </nav>
+
+  <!-- Proje Araçları ve Render Butonu -->
+  <nav class="project-actions" aria-label="Proje İşlemleri">
+    <div class="history-group">
+      <button type="button" id="undoBtn" class="icon-tool-btn" disabled title="Geri al (Ctrl+Z)" aria-label="Geri al">↩</button>
+      <button type="button" id="redoBtn" class="icon-tool-btn" disabled title="Yinele (Ctrl+Shift+Z)" aria-label="Yinele">↪</button>
+    </div>
+    <span class="divider"></span>
+    <button type="button" id="saveProjectBtn" class="ghost action-btn">Kaydet</button>
+    <label class="file-btn compact-action-btn" for="openProjectInput" title="Proje JSON Dosyası Aç" role="button" tabindex="0">Proje aç</label>
+    <input id="openProjectInput" type="file" accept=".json" class="sr-only">
+    <span class="divider"></span>
+    <a id="downloadLink" class="download hidden" download>İndir</a>
+    <button type="button" id="cancelRenderBtn" class="ghost cancel-btn hidden">İptal</button>
+    <button type="button" id="renderBtn" class="render primary-render-btn" disabled>
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/></svg> Video Oluştur
+    </button>
+  </nav>
+</header>
+
+<!-- 2. Ana Çalışma Alanı (Workspace Grid) -->
+<main class="workspace">
+
+  <!-- SOL SÜTUN: Tab-Nav & Inspector (Yeni Mimari) -->
+  <aside class="left-sidebar panel" aria-label="Ayarlar ve Kaynaklar">
+    <div class="inspector-heading"><span class="eyebrow">Çalışma masası</span><h2 id="inspectorTitle">Ana şarkı</h2></div>
+    <div class="sidebar-top-tabs" role="group" aria-label="Kaynak seçimi">
+      <button type="button" class="sidebar-tab source-select active" data-inspect="main" title="Ana Şarkı"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg><span>Ana Şarkı</span></button>
+      <button type="button" class="sidebar-tab source-select" data-inspect="rain" title="Yağmur Efekti"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14a4 4 0 0 1 0-8 6 6 0 0 1 11 0 4 4 0 0 1 1 8M7 17l-1 3m6-3-1 3m6-3-1 3"/></svg><span>Yağmur</span></button>
+      <button type="button" class="sidebar-tab source-select" data-inspect="fire" title="Şömine Efekti"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 6 6 7 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 3 2 4 3 4 2-3 1-6 0-10Z"/></svg><span>Şömine</span></button>
+      <button type="button" class="sidebar-tab source-select" data-inspect="video" title="Görüntü"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 15 6-3-6-3z"/></svg><span>Görüntü</span></button>
+      <button type="button" class="sidebar-tab vfx-tab-btn" data-inspect="videofx" title="VideoFX"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg><span>VideoFX</span></button>
+      <button type="button" class="sidebar-tab" id="tabYt" title="YouTube"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg><span>YouTube</span></button>
+    </div>
+
+    <div class="sidebar-bottom-content">
+      <!-- ANA ŞARKI GÖRÜNÜMÜ -->
+      <div id="inspector-main" class="sidebar-view active-view">
+        <div class="inspector-card compact-upload">
+           <div class="source-upload-row">
+             <div class="card-info">
+               <span class="source-card-title">Ana Şarkı Dosyası</span>
+               <span id="source-main" class="source-card-sub">Dosya seçilmedi</span>
+             </div>
+             <label class="ghost action-btn compact" for="mainUpload" role="button" tabindex="0">Yükle</label>
+             <input type="file" id="mainUpload" accept="audio/*" class="sr-only">
+           </div>
+        </div>
+        <div id="trackInspectorWrap-main" class="track-inspector-slot"></div>
+
+        <!-- Ses Karakteri & FX (Ana şarkı seçiliyken) -->
+        <section id="fxPanel">
+          <div class="inspector-card">
+            <h3 id="fx-title">Ses Karakteri & Akustik</h3>
+            <div class="fx-grid">
+              <div class="fx-item">
+                <div class="fx-header">
+                  <span class="fx-name">Hız</span>
+                  <span class="fx-val-badge" id="speedBadge">0.85×</span>
+                </div>
+                <div class="fx-row">
+                  <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.01" value="0.85">
+                  <input type="number" id="speedOut" class="number-input compact-num" min="0.5" max="1.5" step="0.01" value="0.85" aria-label="Hız">
+                </div>
+              </div>
+
+              <div class="fx-item">
+                <div class="fx-header">
+                  <span class="fx-name">Yankı (Reverb)</span>
+                  <span class="fx-val-badge" id="reverbBadge">40%</span>
+                </div>
+                <div class="fx-row">
+                  <input type="range" id="reverbSlider" min="0" max="100" step="1" value="40">
+                  <input type="number" id="reverbOut" class="number-input compact-num" min="0" max="100" step="1" value="40" aria-label="Yankı">
+                </div>
+              </div>
+
+              <div class="fx-item">
+                <div class="fx-header">
+                  <span class="fx-name">Bas Kuvvetlendirme</span>
+                  <span class="fx-val-badge" id="bassBadge">+0 dB</span>
+                </div>
+                <div class="fx-row">
+                  <input type="range" id="bassSlider" min="0" max="100" step="1" value="0">
+                  <input type="number" id="bassOut" class="number-input compact-num" min="0" max="100" step="1" value="0" aria-label="Bas">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inspector-card">
+            <fieldset class="tone">
+              <legend>Tını Filtresi (EQ Atmosfer)</legend>
+              <div class="tone-options">
+                <label class="tone-option"><input type="radio" name="tone" value="none" checked><span>Normal</span></label>
+                <label class="tone-option"><input type="radio" name="tone" value="distant"><span>🚪 Yan Oda</span></label>
+                <label class="tone-option"><input type="radio" name="tone" value="radio"><span>Radyo</span></label>
+              </div>
+            </fieldset>
+            <label class="check-row vinyl-check"><input type="checkbox" id="vinylToggle"><span>Perdeyi Koru (Vinyl / Tape Mode)</span></label>
+          </div>
+        </section>
+      </div>
+
+      <!-- YAĞMUR GÖRÜNÜMÜ -->
+      <div id="inspector-rain" class="sidebar-view hidden">
+        <div class="inspector-card compact-upload">
+           <div class="source-upload-row">
+             <div class="card-info">
+               <span class="source-card-title">Yağmur Efekti</span>
+               <span id="source-rain" class="source-card-sub">Dosya seçilmedi</span>
+             </div>
+             <label class="ghost action-btn compact" for="rainUpload" role="button" tabindex="0">Yükle</label>
+             <input type="file" id="rainUpload" accept="audio/*" class="sr-only">
+           </div>
+        </div>
+        <div id="trackInspectorWrap-rain" class="track-inspector-slot"></div>
+      </div>
+
+      <!-- ŞÖMİNE GÖRÜNÜMÜ -->
+      <div id="inspector-fire" class="sidebar-view hidden">
+        <div class="inspector-card compact-upload">
+           <div class="source-upload-row">
+             <div class="card-info">
+               <span class="source-card-title">Şömine Efekti</span>
+               <span id="source-fire" class="source-card-sub">Dosya seçilmedi</span>
+             </div>
+             <label class="ghost action-btn compact" for="fireUpload" role="button" tabindex="0">Yükle</label>
+             <input type="file" id="fireUpload" accept="audio/*" class="sr-only">
+           </div>
+        </div>
+        <div id="trackInspectorWrap-fire" class="track-inspector-slot"></div>
+      </div>
+
+      <!-- GÖRÜNTÜ GÖRÜNÜMÜ -->
+      <div id="inspector-video" class="sidebar-view hidden">
+        <div class="inspector-card compact-upload">
+           <div class="source-upload-row">
+             <div class="card-info">
+               <span class="source-card-title">Arka Plan Görseli</span>
+               <span id="backgroundName" class="source-card-sub">Video / GIF seçilmedi</span>
+             </div>
+             <label class="ghost action-btn compact" for="backgroundUpload" role="button" tabindex="0">Yükle</label>
+             <input type="file" id="backgroundUpload" accept="video/*,image/gif,.gif,.mkv" class="sr-only">
+           </div>
+        </div>
+
+        <!-- ÖN PLAN KATMANI (PNG / Sticker / Logo Overlay) -->
+        <div class="inspector-card compact-upload overlay-card">
+           <div class="source-upload-row">
+             <div class="card-info">
+               <span class="source-card-title">Ön Plan Katmanı (PNG / Logo)</span>
+               <span id="overlayName" class="source-card-sub">PNG / Çıkartma eklenmedi</span>
+             </div>
+             <div>
+               <button type="button" id="clearOverlayBtn" class="ghost action-btn compact hidden" title="Katmanı Kaldır">✕</button>
+               <label class="ghost action-btn compact" for="overlayUpload" role="button" tabindex="0">Yükle</label>
+               <input type="file" id="overlayUpload" accept="image/png,image/webp,image/svg+xml,image/*" class="sr-only">
+             </div>
+           </div>
+
+           <div id="overlayControls" class="overlay-controls-panel hidden">
+             <div class="overlay-controls-grid">
+               <label class="vol">
+                 <span>Konum X (%)</span>
+                 <input type="range" id="overlayX" min="0" max="100" value="50">
+                 <input type="number" id="overlayXOut" class="number-input compact-num" min="0" max="100" value="50">
+               </label>
+               <label class="vol">
+                 <span>Konum Y (%)</span>
+                 <input type="range" id="overlayY" min="0" max="100" value="50">
+                 <input type="number" id="overlayYOut" class="number-input compact-num" min="0" max="100" value="50">
+               </label>
+               <label class="vol">
+                 <span>Boyut (%)</span>
+                 <input type="range" id="overlayScale" min="10" max="250" value="100">
+                 <input type="number" id="overlayScaleOut" class="number-input compact-num" min="10" max="250" value="100">
+               </label>
+               <label class="vol">
+                 <span>Opaklık (%)</span>
+                 <input type="range" id="overlayOpacity" min="0" max="100" value="100">
+                 <input type="number" id="overlayOpacityOut" class="number-input compact-num" min="0" max="100" value="100">
+               </label>
+             </div>
+           </div>
+        </div>
+
+        <section id="videoPanel">
+          <div class="inspector-card">
+            <h3>Görüntü URL İçe Aktar</h3>
+            <div class="url-row">
+              <input type="url" id="gifUrlInput" placeholder="Video veya GIF adresi" aria-label="Görüntü adresi" spellcheck="false">
+              <button type="button" class="ghost action-btn" id="importUrlBtn">Yükle</button>
+            </div>
+            <button type="button" id="openGiphyBtn" class="ghost action-btn full-btn">Giphy'de ara</button>
+          </div>
+          <div id="videoControls"></div>
+          <div class="inspector-card">
+            <label class="check-row"><input type="checkbox" id="vhsToggle"><span>VHS Kaset Dokusu · %82 / γ 1,3</span></label>
+          </div>
+        </section>
+      </div>
+
+      <!-- VIDEOFX GÖRÜNÜMÜ -->
+      <div id="inspector-videofx" class="sidebar-view hidden">
+        <section id="videofxPanel"></section>
+      </div>
+
+      <!-- SÖZLER GÖRÜNÜMÜ (Mevcut Lyrics Panel'den Kopyalanan) -->
+      <div id="inspector-lyrics" class="sidebar-view hidden">
+        <!-- Zaten workspace.js lyricsPanel id'sini veya CSS ini kullanıyor -->
+        <section id="lyricsPanel" class="hidden">
+          <div class="panel-section-header">
+            <h3>Şarkı Sözü Araçları</h3>
+            <label class="check-row compact-toggle"><input id="lyricsEnabled" type="checkbox" checked><span>Ekranda Göster</span></label>
+          </div>
+
+          <details class="lyric-tools" open>
+            <summary>Otomatik Çözümleme (AI / Whisper)</summary>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Dil</span><select id="lyricsLanguage"><option value="tr">Türkçe</option><option value="auto">Otomatik</option><option value="en">İngilizce</option><option value="de">Almanca</option><option value="fr">Fransızca</option><option value="es">İspanyolca</option><option value="ar">Arapça</option></select></label>
+              <label class="edit-field"><span>Model</span><select id="lyricsModel"><option value="base">Base</option><option value="small">Small</option><option value="large-v3-turbo">Large Turbo</option><option value="large-v3">Large v3</option></select></label>
+            </div>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Kapsam</span><select id="lyricsScope"><option value="selection">Yalnızca seçim</option><option value="full">Tüm parça</option></select></label>
+              <label class="check-row"><input type="checkbox" id="lyricsUseReference"> <span>Hazır metni rehber al</span></label>
+            </div>
+            <span class="meta-tag" id="lyricsModelState">Model durumu</span>
+            <div class="lyric-transfer">
+              <button id="lyricsTranscribe" type="button" class="ghost primary-action">Sözleri Çözümle</button>
+              <button id="lyricsAlign" type="button" class="ghost hidden" title="Mevcut sözleri sese hizala">Akustik Hizala</button>
+              <button id="lyricsHold" type="button" class="ghost" title="Basılı tut: seçili satırı şu andan itibaren doldurur">Bas + Doldur</button>
+              <button id="lyricsCancel" type="button" class="ghost hidden">İptal</button>
+            </div>
+            <div id="lyricsAutoStatus" class="track-note" role="status" aria-live="polite"></div>
+            <progress id="lyricsAutoProgress" class="hidden" max="100" value="0" aria-label="Söz çözümleme ilerlemesi"></progress>
+
+            <div id="lyricsDraft" class="hidden">
+              <div id="lyricsDraftBefore" class="hidden">
+                <p class="track-note">Önceki satırlar:</p>
+                <textarea id="lyricsDraftBeforeText" readonly rows="3" aria-label="Değiştirilecek satırlar"></textarea>
+              </div>
+              <textarea id="lyricsDraftText" readonly rows="5" aria-label="Otomatik söz taslağı"></textarea>
+              <div class="track-note" id="lyricsDraftStatus"></div>
+              <div class="lyric-transfer">
+                <button id="lyricsApplyDraft" type="button" class="ghost primary-action">Taslağı Uygula</button>
+                <button id="lyricsDiscardDraft" type="button" class="ghost">Kaldır</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="lyric-tools">
+            <summary>LRCLIB Veritabanından Ara</summary>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Şarkı adı</span><input type="text" id="lyricsSearchTrack" placeholder="Örn: Stay With Me" aria-label="Aranacak şarkı adı"></label>
+              <label class="edit-field"><span>Sanatçı</span><input type="text" id="lyricsSearchArtist" placeholder="Sanatçı adı" aria-label="Sanatçı adı"></label>
+            </div>
+            <div class="lyric-transfer"><button id="lyricsSearch" type="button" class="ghost full-btn">LRCLIB'de Bul</button></div>
+            <div id="lyricsSearchStatus" class="track-note" role="status"></div>
+            <div id="lyricsSearchResults" class="lyric-search-results"></div>
+          </details>
+
+          <details class="lyric-tools">
+            <summary>Metin Yapıştır & Dosya Aktar</summary>
+            <textarea id="lyricsPaste" rows="4" aria-label="Şarkı sözü metni" placeholder="Şarkı sözlerini buraya yapıştırın..."></textarea>
+            <button id="lyricsAddText" type="button" class="ghost full-btn">Satırları Ekle</button>
+            <div class="lyric-transfer">
+              <label class="file-btn compact-action-btn" for="lyricsImport" role="button" tabindex="0">İçe Al</label>
+              <input id="lyricsImport" type="file" accept=".lrc,.srt,.txt" class="sr-only">
+              <select id="lyricsTimebase" aria-label="Dosya zaman tabanı"><option value="source">Şarkı zamanı</option><option value="project">Proje zamanı</option></select>
+              <button id="lyricsLrc" type="button" class="ghost">LRC</button>
+              <button id="lyricsSrt" type="button" class="ghost">SRT</button>
+            </div>
+          </details>
+
+          <details class="lyric-tools">
+            <summary>Tipografi, Renk & Görünüm</summary>
+            <div id="lyricsStyle"></div>
+          </details>
+
+          <details class="lyric-tools">
+            <summary>Toplu Zaman Kaydırma & Düzenleme</summary>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Filtre</span><select id="lyricsReviewFilter"><option value="all">Tümü</option><option value="issues">Sorunlu</option><option value="timing">Zamanlama</option><option value="untimed">Zamansız</option><option value="overlap">Çakışma</option><option value="bounds">Sınır dışı</option><option value="confidence">Güven düşük</option><option value="noise">Gürültü</option></select></label>
+            </div>
+            <div id="lyricsReviewReason" class="track-note"></div>
+            <div class="lyric-transfer">
+              <span id="lyricsReviewRange" class="meta-tag"></span>
+              <button id="lyricsReviewListen" type="button" class="ghost" disabled>Dinle</button>
+              <button id="lyricsReviewApprove" type="button" class="ghost" disabled>Onayla</button>
+              <button id="lyricsReviewNext" type="button" class="ghost" disabled>Sonraki →</button>
+            </div>
+            <hr class="sub-divider">
+            <div class="trim-controls">
+              <span id="lyricsBulkCount" class="meta-tag">0 seçili</span>
+              <button id="lyricsSelectVisible" type="button" class="ghost">Tümünü Seç</button>
+              <button id="lyricsClearSelection" type="button" class="ghost" disabled>Temizle</button>
+            </div>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Kaydır · sn</span><input type="number" id="lyricsShiftValue" step="0.01" placeholder="0.5" aria-label="Kaydırma miktarı"></label>
+              <button id="lyricsShift" type="button" class="ghost" disabled>Seçiliyi Kaydır</button>
+              <button id="lyricsShiftAll" type="button" class="ghost" title="Tüm zamanlanmış satırları belirtilen süre kadar kaydırır">Tümünü Kaydır</button>
+            </div>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Ölçek · ×</span><input type="number" id="lyricsScaleValue" step="0.01" min="0.01" placeholder="1.0" aria-label="Ölçekleme çarpanı"></label>
+              <button id="lyricsScale" type="button" class="ghost" disabled>Ölçekle</button>
+            </div>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Bul</span><input type="text" id="lyricsFind" placeholder="Aranacak" aria-label="Aranacak"></label>
+              <label class="edit-field"><span>Değiştir</span><input type="text" id="lyricsReplaceText" placeholder="Yeni metin" aria-label="Yeni metin"></label>
+              <button id="lyricsReplace" type="button" class="ghost" disabled>Değiştir</button>
+            </div>
+            <div class="lyric-transfer">
+              <button id="lyricsMerge" type="button" class="ghost" disabled>Birleştir</button>
+              <button id="lyricsSplit" type="button" class="ghost" disabled>Böl</button>
+            </div>
+            <div id="lyricsBulkStatus" class="track-note" role="status"></div>
+            <div id="lyricsReviewCount" class="track-note"></div>
+          </details>
+
+          <details class="lyric-tools">
+            <summary>Bölüm Yeniden Çözümleme</summary>
+            <div class="trim-controls">
+              <label class="edit-field"><span>Başlangıç · sn</span><input type="number" id="lyricsRangeStart" min="0" max="86400" step="0.01" placeholder="0" aria-label="Bölüm başlangıcı"></label>
+              <label class="edit-field"><span>Bitiş · sn</span><input type="number" id="lyricsRangeEnd" min="0" max="86400" step="0.01" placeholder="—" aria-label="Bölüm bitişi"></label>
+            </div>
+            <div class="lyric-transfer">
+              <span id="lyricsRangeCount" class="meta-tag"></span>
+              <button id="lyricsRangeReset" type="button" class="ghost" title="Seçime göre sıfırla">↺</button>
+              <button id="lyricsRetranscribe" type="button" class="ghost" disabled>Bölümü Çözümle</button>
+            </div>
+            <div id="lyricsRangeStatus" class="track-note"></div>
+          </details>
+        </section>
+      </div>
+
+      <!-- Dışa Aktarım (Output & MasterPanel) -->
+      <div id="inspector-output" class="sidebar-view hidden">
+        <section id="masterPanel">
+          <div class="inspector-card">
+            <h3>Video Çıktı Formatı</h3>
+            <div id="outputControls"></div>
+          </div>
+          <div class="inspector-card">
+            <h3>Ses Kalitesi & Normalizasyon</h3>
+            <div id="masterControls"></div>
+            <div class="output-facts">
+              <span>Format:</span><b>MP4 · H.264 / AAC</b>
+              <span>Hedef:</span><b>outputs/ dizini</b>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- YOUTUBE GÖRÜNÜMÜ (Arama, Sesi İndir, Videoyu İndir) -->
+      <div id="ytView" class="sidebar-view hidden">
+        <div class="yt-wrap">
+          <!-- Arama & URL Girişi -->
+          <div class="yt-search-box">
+            <div class="yt-input-row">
+              <input type="text" id="ytSearchInput" aria-label="YouTube arama veya adres" placeholder="Ara veya YouTube linki yapıştır…" spellcheck="false">
+              <button type="button" id="ytSearchBtn" class="ghost action-btn primary-action">Ara</button>
+            </div>
+
+            <!-- Hızlı Arama Önerileri -->
+            <div class="yt-quick-tags">
+              <button type="button" class="yt-tag-btn" data-tag="lofi hip hop chill">☕ Lofi Beats</button>
+              <button type="button" class="yt-tag-btn" data-tag="anime rain aesthetic">🌧Anime Rain</button>
+              <button type="button" class="yt-tag-btn" data-tag="synthwave sunset loop">🌆 Synthwave</button>
+              <button type="button" class="yt-tag-btn" data-tag="cozy fireplace lofi">🔥 Cozy Fire</button>
+            </div>
+          </div>
+
+          <!-- Doğrudan Link Yapıştırıldığında Çıkan İndirme Aksiyonları -->
+          <div id="ytDirectActions" class="yt-direct-panel hidden">
+            <div class="yt-target-buttons">
+              <button type="button" id="ytDownloadAudioBtn" class="ghost action-btn yt-opt-btn audio-opt" title="Sesi indirip Ana Şarkıya bağla">
+                <span class="btn-icon">🎵</span>
+                <span class="btn-text">Sesi İndir</span>
+              </button>
+              <button type="button" id="ytDownloadVideoBtn" class="ghost action-btn yt-opt-btn video-opt" title="Videoyu indirip sahne arka planına bağla">
+                <span class="btn-icon">🎬</span>
+                <span class="btn-text">Videoyu İndir</span>
+              </button>
+            </div>
+            <fieldset id="playlistOptions" class="tone hidden">
+              <legend>Çalma Listesi Kapsamı</legend>
+              <label class="radio-row"><input type="radio" name="ytMode" value="single" checked>Tek şarkı</label>
+              <label class="radio-row"><input type="radio" name="ytMode" value="playlist">Liste · en fazla 20</label>
+            </fieldset>
+          </div>
+
+          <!-- İlerleme ve Durum Göstergesi -->
+          <div id="ytProgressArea" class="yt-progress-area hidden">
+            <div class="yt-progress-header">
+              <span id="ytStatus" class="track-note">İndiriliyor…</span>
+            </div>
+            <div class="bar" id="ytBarWrap"><div id="ytProgressFill" class="bar-fill"></div></div>
+          </div>
+
+          <!-- Arama Sonuçları Havuzu (Giphy Benzeri) -->
+          <div class="yt-results-section">
+            <div class="yt-results-header">
+              <span id="ytResultsTitle">YouTube Keşif</span>
+              <span id="ytResultsCount" class="meta-tag">0 video</span>
+            </div>
+            <div id="ytResults" class="yt-results-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dinamik Track Inspector (Eğer script buraya render etmek isterse, trackInspector id'si gerekli) -->
+      <!-- Bunu bir üstte, trackInspectorWrap-* taglarının içine script ile js'ten appendleyeceğiz. -->
+      <div id="trackInspector" class="hidden"></div>
+
+    </div>
+  </aside>
+  <!-- ORTA SÜTUN ÜST: Akıllı Sahne (Preview) -->
+  <section class="preview panel" aria-labelledby="preview-title">
+    <div class="panel-head">
+      <div class="panel-title-wrap">
+        <span class="section-index" aria-hidden="true">01</span>
+        <h2 id="preview-title">Sahne</h2>
+        <span id="previewState" class="status-indicator" role="status">—</span>
+      </div>
+      <div class="preview-actions">
+        <span id="videoMeta" class="meta-tag">—</span>
+        <span id="previewMode" class="meta-tag"></span>
+        <button type="button" id="fullscreenBtn" class="icon-btn" aria-label="Önizlemeyi tam ekran aç" title="Tam Ekran (F)">⛶</button>
+      </div>
+    </div>
+
+    <!-- Sinematik Sahne Alanı -->
+    <div class="canvas-stage-wrapper">
+      <div class="canvas-stage" id="canvasStage">
+        <canvas class="preview-canvas" id="previewCanvas" width="1280" height="720" aria-label="Senkron video önizlemesi"></canvas>
+        <canvas class="overlay-canvas" id="overlayCanvas" width="1280" height="720" aria-label="Ön plan katmanı"></canvas>
+        <canvas class="lyrics-canvas" id="lyricsCanvas" width="1280" height="720" aria-label="Senkron şarkı sözleri"></canvas>
+
+        <!-- Zengin ve Karizmatik Empty State -->
+        <div id="previewEmpty" class="preview-empty-card">
+          <div class="empty-stage-art" aria-hidden="true">
+            <svg viewBox="0 0 120 100" fill="none">
+              <rect x="6" y="8" width="108" height="84" rx="6" class="record-sleeve"/>
+              <circle cx="52" cy="50" r="33" class="record-disc"/>
+              <circle cx="52" cy="50" r="26"/><circle cx="52" cy="50" r="22"/>
+              <circle cx="52" cy="50" r="12" class="record-label"/>
+              <circle cx="52" cy="50" r="2" class="record-hole"/>
+              <path d="M99 22v30L87 70m-3-2 6 4-5 8-6-4z" class="record-arm"/>
+              <circle cx="99" cy="22" r="4" class="record-label"/>
+            </svg>
+          </div>
+          <div class="empty-stage-title" data-empty-title="Biraz ses, biraz atmosfer.">Biraz ses, biraz atmosfer.</div>
+          <div class="empty-stage-desc">Sahnene bir video veya GIF ekle. Gerisi senin ritminde.</div>
+          <div class="empty-stage-actions">
+            <button type="button" id="stageMediaBtn" class="stage-cta-btn primary-cta">＋ Medya seç</button>
+            <button type="button" id="stageGiphyBtn" class="stage-cta-btn secondary-cta">Giphy'de ara</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ORTA SÜTUN ALT: Zaman Çizelgesi (Timeline) -->
+  <section class="timeline panel" aria-label="Zaman çizelgesi">
+    <div class="timeline-head panel-head">
+      <div class="timeline-title-wrap">
+        <span class="section-index" aria-hidden="true">02</span>
+        <h2>Ses kanalları</h2>
+        <span id="mainInfo" class="meta-tag">Tam parça</span>
+      </div>
+    </div>
+
+    <!-- Cetvel ve Markerlar -->
+    <div class="ruler-container">
+      <div class="ruler" id="timelineRuler" aria-hidden="true"></div>
+      <div id="timelineMarkers" class="timeline-markers-layer"></div>
+    </div>
+
+    <input type="range" class="project-seek" id="projectSeek" min="0" max="0" value="0" step="0.001" disabled aria-label="Proje zamanı">
+
+    <!-- Parçalar (Kompakt DAW şeritleri) -->
+    <div class="tracks-container">
+      <article class="track track-main" data-track="main">
+        <div class="track-top">
+          <div class="track-header-info">
+            <span class="track-bullet bullet-amber">●</span>
+            <button type="button" class="track-select" data-inspect="main">Ana Şarkı</button>
+            <span class="track-file" id="mainName">—</span>
+          </div>
+          <div class="track-actions">
+            <label class="vol" for="mainVol">
+              <span>Vol</span>
+              <input type="range" id="mainVol" min="0" max="200" value="100" aria-label="Ana şarkı sesi">
+              <input type="number" id="mainVolOut" class="number-input compact-num" min="0" max="200" step="1" value="100" aria-label="Ana şarkı ses yüzdesi">
+            </label>
+          </div>
+          <span class="zoom-tag hidden" id="zoomTagMain">1.0×</span>
+        </div>
+        <div id="waveform-main" class="wave"></div>
+      </article>
+
+      <article class="track track-rain" data-track="rain">
+        <div class="track-top">
+          <div class="track-header-info">
+            <span class="track-bullet bullet-cyan">●</span>
+            <button type="button" class="track-select" data-inspect="rain">Yağmur</button>
+            <span class="track-file" id="rainName">—</span>
+          </div>
+          <div class="track-actions">
+            <label class="vol" for="rainVol">
+              <span>Vol</span>
+              <input type="range" id="rainVol" min="0" max="200" value="40" aria-label="Yağmur sesi">
+              <input type="number" id="rainVolOut" class="number-input compact-num" min="0" max="200" step="1" value="40" aria-label="Yağmur ses yüzdesi">
+            </label>
+          </div>
+          <span class="zoom-tag hidden" id="zoomTagRain">1.0×</span>
+        </div>
+        <div id="waveform-rain" class="wave"></div>
+      </article>
+
+      <article class="track track-fire" data-track="fire">
+        <div class="track-top">
+          <div class="track-header-info">
+            <span class="track-bullet bullet-red">●</span>
+            <button type="button" class="track-select" data-inspect="fire">Şömine</button>
+            <span class="track-file" id="fireName">—</span>
+          </div>
+          <div class="track-actions">
+            <label class="vol" for="fireVol">
+              <span>Vol</span>
+              <input type="range" id="fireVol" min="0" max="200" value="60" aria-label="Şömine sesi">
+              <input type="number" id="fireVolOut" class="number-input compact-num" min="0" max="200" step="1" value="60" aria-label="Şömine ses yüzdesi">
+            </label>
+          </div>
+          <span class="zoom-tag hidden" id="zoomTagFire">1.0×</span>
+        </div>
+        <div id="waveform-fire" class="wave"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ORTA SÜTUN ALT (Alternatif): Şarkı Sözleri Zamanlama Masası -->
+  <section id="lyricsWorkbench" class="lyrics-workbench panel hidden" aria-label="Söz zamanlama editörü">
+    <div class="lyrics-toolbar">
+      <div class="lyrics-toolbar-left">
+        <h2>Sözler</h2>
+        <span id="lyricsCount" class="meta-tag">0 satır</span>
+      </div>
+      <div class="lyrics-toolbar-center">
+        <select id="lyricsTemplate" class="ghost compact-select" aria-label="Söz şablonu">
+          <option value="default">Standart (Altyazı)</option>
+          <option value="karaoke">Karaoke (Vurgulu)</option>
+          <option value="two-line">İki Satır (Kayan)</option>
+        </select>
+        <button type="button" class="ghost" data-inspect="main">Sesler</button>
+      </div>
+      <div class="lyrics-toolbar-right">
+        <button id="lyricsStamp" type="button" class="ghost" title="Satır başlangıcını işaretle (T)">İşaretle (T)</button>
+        <button id="lyricsEnd" type="button" class="ghost" title="Seçili satırın bitişini işaretle (Shift+T)">Bitiş</button>
+        <button id="lyricsNewLine" type="button" class="ghost primary-ghost">＋ Satır</button>
+      </div>
+    </div>
+    <div id="lyricsList" class="lyrics-list" role="list" aria-label="Şarkı zamanına göre söz satırları"></div>
+  </section>
+
+</main>
+
+<!-- 3. Entegre Transport Çubuğu (48px) -->
+<footer class="transport">
+  <div class="transport-left">
+    <div class="transport-buttons">
+      <button type="button" id="restartBtn" class="icon-btn" disabled aria-label="Başa dön" title="Başa dön (Home)">↤</button>
+      <button type="button" id="playBtn" class="play-btn-circle" disabled aria-label="Önizlemeyi oynat / duraklat">
+        <span id="playIcon">▶</span>
+        <span id="playText" class="sr-only">Oynat</span>
+      </button>
+      <button type="button" id="loopBtn" class="icon-btn is-on" aria-pressed="true" title="Döngü (L)" aria-label="Döngü">⟲</button>
+      <button type="button" id="clearSelBtn" class="icon-btn" disabled title="Seçimi kaldır (Esc)" aria-label="Seçimi kaldır">×</button>
+    </div>
+
+    <!-- Dijital Stüdyo Süre Paneli -->
+    <div class="timecode-display" title="Geçerli / Toplam Proje Süresi">
+      <span class="timecode-dot"></span>
+      <span id="timeReadout" class="time-readout">0:00 / 0:00</span>
+    </div>
+
+    <!-- Web Sitesi Dinleme Sesi (Render/Çıktıyı etkilemez) -->
+    <div class="transport-volume" id="monitorVolumeGroup" title="Dinleme Sesi (Tarayıcı önizleme sesi - Çıktı dosyasını etkilemez)">
+      <button type="button" id="monitorMuteBtn" class="icon-btn volume-btn" aria-label="Sesi Kapat / Aç" title="Sesi Kapat / Aç (M)">
+        <span id="monitorVolumeIcon">🔊</span>
+      </button>
+      <div class="volume-slider-container">
+        <input type="range" id="monitorVolumeSlider" min="0" max="100" value="100" step="1" aria-label="Dinleme Ses Seviyesi (Çıktıyı etkilemez)">
+      </div>
+      <span id="monitorVolumeBadge" class="volume-badge" title="Dinleme ses seviyesi">%100</span>
+    </div>
+  </div>
+
+  <div class="transport-info">
+    <div class="status-wrap">
+      <span class="status-text" id="statusText" role="status" aria-live="polite">Hazır</span>
+    </div>
+    <div class="bar"><div id="progressFill" class="bar-fill"></div></div>
+  </div>
+
+  <div id="loader" class="loader hidden" role="status"><span id="loaderText">Ses hazırlanıyor</span></div>
+</footer>
+
+</div><!-- .app-shell -->
+
+<!-- GIPHY Modalı -->
+<div id="giphyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="giphy-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="giphy-title">Giphy GIF Havuzu</h2>
+      <button type="button" class="close" id="closeGiphy" aria-label="Kapat">×</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" aria-label="GIF ara" id="giphySearchInput" value="sad depressed cartoon" placeholder="GIF Ara...">
+      <button type="button" id="giphySearchBtn" class="ghost primary-action">Ara</button>
+    </div>
+    <div id="giphyResults" class="giphy-grid"></div>
+    <div class="pager">
+      <button type="button" id="giphyPrev" class="ghost" disabled>← Önceki</button>
+      <span id="giphyPageInfo">—</span>
+      <button type="button" id="giphyNext" class="ghost" disabled>Sonraki →</button>
+    </div>
+  </div>
+</div>
+
+<script id="lyricFontMetrics" type="application/json">{{ lyric_fonts|tojson }}</script>
+<script id="projectSchema" type="application/json">{{ project_schema|tojson }}</script>
+<script defer src="{{ url_for('static', filename='js/project.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-signal.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/mouse.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/packages.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/drafts.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/sample.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/frame-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/scene-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/bass-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-clips.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-clips-preview.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/preview-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyrics.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-review.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-range.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-bulk.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyrics-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/workspace.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/dynamic-tracks.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/markers.js') }}"></script>
+</body></html>

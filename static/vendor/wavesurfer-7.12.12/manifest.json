@@ -1,0 +1,14 @@
+{
+  "wavesurfer.min.js": {
+    "url": "https://unpkg.com/wavesurfer.js@7.12.12/dist/wavesurfer.min.js",
+    "sha256": "cb9fff59e7ce18932fab801771589ca48bc0362db82218d86cf05f5b60f0bc5e"
+  },
+  "regions.min.js": {
+    "url": "https://unpkg.com/wavesurfer.js@7.12.12/dist/plugins/regions.min.js",
+    "sha256": "fa36e84bd0f22e332e5ac4d0264967e350375fa00418bc18d095bb0e0116e16d"
+  },
+  "LICENSE": {
+    "url": "https://unpkg.com/wavesurfer.js@7.12.12/LICENSE",
+    "sha256": "0fc992dc27cc34dde78bfeb024b4cadff6320f0dcbee2f1228efaeb533ca1364"
+  }
+}

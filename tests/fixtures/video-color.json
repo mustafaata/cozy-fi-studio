@@ -1,0 +1,182 @@
+[
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": false,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      43,
+      128,
+      232
+    ]
+  },
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "gamma": 1,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": true,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      19,
+      79,
+      173
+    ]
+  },
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": 0.13,
+      "contrast": 1.24,
+      "saturation": 0.6,
+      "gamma": 1.4,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": false,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      124,
+      179,
+      239
+    ]
+  },
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": 0.13,
+      "contrast": 1.24,
+      "saturation": 0.6,
+      "gamma": 1.4,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": true,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      76,
+      123,
+      179
+    ]
+  },
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": -0.1,
+      "contrast": 0.8,
+      "saturation": 1.7,
+      "gamma": 0.7,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": false,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      0,
+      74,
+      185
+    ]
+  },
+  {
+    "video": {
+      "start": 0,
+      "end": null,
+      "speed": 1,
+      "linkSpeed": false,
+      "loop": true,
+      "brightness": -0.1,
+      "contrast": 0.8,
+      "saturation": 1.7,
+      "gamma": 0.7,
+      "fit": "cover",
+      "zoom": 1,
+      "positionX": 0,
+      "positionY": 0,
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "vhs": true,
+    "input": [
+      43,
+      128,
+      232
+    ],
+    "expected": [
+      0,
+      38,
+      129
+    ]
+  }
+]

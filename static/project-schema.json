@@ -1,0 +1,831 @@
+{
+  "version": 1,
+  "maxDuration": 1200,
+  "bassProfiles": {
+    "video": {
+      "zoom": {"label": "Zoom Punch", "softness": 0},
+      "rgb_split": {"label": "RGB Split", "softness": 50},
+      "shake": {"label": "Kamera Sarsıntısı", "softness": 35},
+      "flash": {"label": "Işık Parlaması", "softness": 80},
+      "invert": {"label": "Negatif", "softness": 45},
+      "glow": {"label": "Neon Işıltı", "softness": 90},
+      "glitch": {"label": "Bant Kayması", "softness": 20},
+      "defocus": {"label": "Odak Dalgalanması", "softness": 85},
+      "strobe": {"label": "Strobe", "softness": 10},
+      "kaleidoscope": {"label": "Kaleydoskop", "softness": 65},
+      "edge_detect": {"label": "Siber Kenar", "softness": 80},
+      "pixelate": {"label": "Piksel Punch", "softness": 0},
+      "hue_spin": {"label": "Renk Çarkı", "softness": 65}
+    },
+    "lyrics": {
+      "pulse": {"label": "Yaylanma (Pulse)", "softness": 35},
+      "bounce": {"label": "Zıplama (Bounce)", "softness": 0},
+      "glow": {"label": "Neon Parıltı", "softness": 90},
+      "glitch": {"label": "Titreşim", "softness": 30},
+      "wave_float": {"label": "Dalgalanma (Wave)", "softness": 65},
+      "color_flash": {"label": "Renk Parlaması", "softness": 85},
+      "tilt_shake": {"label": "Açısal Sarsıntı", "softness": 40},
+      "blur_pulse": {"label": "Bulanıklık", "softness": 85}
+    }
+  },
+  "bassControlLimits": {
+    "intensity": {"min": 0, "max": 200, "default": 100},
+    "softness": {"min": 0, "max": 100}
+  },
+  "defaultTracks": [
+    "main",
+    "rain",
+    "fire"
+  ],
+  "track": {
+    "start": {
+      "type": "number",
+      "min": 0,
+      "max": 86400,
+      "default": 0
+    },
+    "end": {
+      "type": "number",
+      "min": 0,
+      "max": 86400,
+      "default": null,
+      "nullable": true
+    },
+    "offset": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "volume": {
+      "type": "number",
+      "min": 0,
+      "max": 200,
+      "default": 100
+    },
+    "pan": {
+      "type": "number",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    "muted": {
+      "type": "boolean",
+      "default": false
+    },
+    "solo": {
+      "type": "boolean",
+      "default": false
+    },
+    "loop": {
+      "type": "boolean",
+      "default": true
+    },
+    "fadeIn": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "fadeOut": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "ducking": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "automation": {
+      "type": "object",
+      "default": {}
+    }
+  },
+  "effects": {
+    "speed": {
+      "type": "number",
+      "min": 0.5,
+      "max": 1.5,
+      "default": 0.85
+    },
+    "preservePitch": {
+      "type": "boolean",
+      "default": false
+    },
+    "bass": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "reverb": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 40
+    },
+    "tone": {
+      "type": "string",
+      "values": [
+        "none",
+        "distant",
+        "radio"
+      ],
+      "default": "none"
+    }
+  },
+  "master": {
+    "volume": {
+      "type": "number",
+      "min": 0,
+      "max": 200,
+      "default": 100
+    },
+    "ceiling": {
+      "type": "number",
+      "min": -24,
+      "max": 0,
+      "default": -1
+    },
+    "loudnorm": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "videoClips": {
+    "type": "array",
+    "default": []
+  },
+  "markers": {
+    "type": "array",
+    "default": []
+  },
+  "background": {
+    "asset": {
+      "type": "string",
+      "maxLength": 64,
+      "default": ""
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "url": {
+      "type": "string",
+      "maxLength": 4096,
+      "default": ""
+    },
+    "vhs": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "overlay": {
+    "asset": {
+      "type": "string",
+      "maxLength": 64,
+      "default": ""
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "url": {
+      "type": "string",
+      "maxLength": 4096,
+      "default": ""
+    },
+    "x": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "y": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "scale": {
+      "type": "number",
+      "min": 5,
+      "max": 300,
+      "default": 100
+    },
+    "opacity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 100
+    }
+  },
+  "video": {
+    "animMode": {
+      "type": "string",
+      "values": [
+        "none",
+        "breathe",
+        "pulse",
+        "drift",
+        "flicker",
+        "zoom_pulse",
+        "chromashift"
+      ],
+      "default": "none"
+    },
+    "animSpeed": {
+      "type": "number",
+      "min": 0.1,
+      "max": 10.0,
+      "default": 3.0
+    },
+    "animDepth": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "start": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "end": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": null,
+      "nullable": true
+    },
+    "speed": {
+      "type": "number",
+      "min": 0.25,
+      "max": 2,
+      "default": 1
+    },
+    "linkSpeed": {
+      "type": "boolean",
+      "default": false
+    },
+    "loop": {
+      "type": "boolean",
+      "default": true
+    },
+    "brightness": {
+      "type": "number",
+      "min": -0.5,
+      "max": 0.5,
+      "default": 0
+    },
+    "contrast": {
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1
+    },
+    "saturation": {
+      "type": "number",
+      "min": 0,
+      "max": 2,
+      "default": 1
+    },
+    "gamma": {
+      "type": "number",
+      "min": 0.25,
+      "max": 3,
+      "default": 1
+    },
+    "fit": {
+      "type": "string",
+      "values": [
+        "contain",
+        "cover"
+      ],
+      "default": "cover"
+    },
+    "zoom": {
+      "type": "number",
+      "min": 1,
+      "max": 4,
+      "default": 1
+    },
+    "positionX": {
+      "type": "number",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    "positionY": {
+      "type": "number",
+      "min": -1,
+      "max": 1,
+      "default": 0
+    },
+    "hueShift": {
+      "type": "number",
+      "min": -180,
+      "max": 180,
+      "default": 0
+    },
+    "grain": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "vignette": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0
+    },
+    "blur": {
+      "type": "number",
+      "min": 0,
+      "max": 10,
+      "default": 0
+    },
+    "filmOverlay": {
+      "type": "string",
+      "values": [
+        "none",
+        "dust",
+        "lightleak",
+        "scanlines",
+        "bloom",
+        "glitch",
+        "rain"
+      ],
+      "default": "none"
+    },
+    "filmIntensity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "letterbox": {
+      "type": "number",
+      "min": 0,
+      "max": 25,
+      "default": 0
+    },
+    "lyricDimmer": {
+      "type": "number",
+      "min": 0,
+      "max": 80,
+      "default": 0
+    },
+    "temperature": {
+      "type": "number",
+      "min": -50,
+      "max": 50,
+      "default": 0
+    },
+    "liftShadows": {
+      "type": "number",
+      "min": 0,
+      "max": 50,
+      "default": 0
+    },
+    "bassEffect": {
+      "type": "string",
+      "values": [
+        "none",
+        "zoom",
+        "rgb_split",
+        "shake",
+        "flash",
+        "invert",
+        "glow",
+        "glitch",
+        "defocus",
+        "strobe",
+        "kaleidoscope",
+        "edge_detect",
+        "pixelate",
+        "hue_spin"
+      ],
+      "default": "none"
+    },
+    "bassEffects": {
+      "type": "array",
+      "default": []
+    },
+    "bassColor": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#00e5ff"
+    },
+    "bassControls": {"type": "object", "default": {}},
+    "chromaKey": {
+      "type": "boolean",
+      "default": false
+    },
+    "chromaKeyColor": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#00ff00"
+    },
+    "chromaKeySimilarity": {
+      "type": "number",
+      "min": 1,
+      "max": 100,
+      "default": 30
+    },
+    "chromaKeySmoothness": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 10
+    },
+    "gaussianBlur": {
+      "type": "number",
+      "min": 0,
+      "max": 20,
+      "default": 0
+    },
+    "bassSensitivity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "bassAttack": {
+      "type": "number",
+      "min": 10,
+      "max": 100,
+      "default": 60
+    },
+    "bassFrequency": {
+      "type": "string",
+      "values": [
+        "all",
+        "sub",
+        "kick"
+      ],
+      "default": "all"
+    },
+    "vizType": {
+      "type": "string",
+      "values": [
+        "none",
+        "bars",
+        "mirror_bars",
+        "wave",
+        "radial",
+        "dots",
+        "line",
+        "sunburst",
+        "oscilloscope",
+        "aurora",
+        "vu_meter"
+      ],
+      "default": "none"
+    },
+    "vizPosition": {
+      "type": "string",
+      "values": [
+        "bottom",
+        "center",
+        "top"
+      ],
+      "default": "bottom"
+    },
+    "vizTheme": {
+      "type": "string",
+      "values": [
+        "cyan_magenta",
+        "sunset_purple",
+        "emerald_mint",
+        "gold_amber",
+        "pure_white"
+      ],
+      "default": "cyan_magenta"
+    },
+    "vizOpacity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 70
+    },
+    "vizScale": {
+      "type": "number",
+      "min": 10,
+      "max": 100,
+      "default": 50
+    },
+    "fadeIn": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "fadeOut": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    }
+  },
+  "output": {
+    "fps": {
+      "type": "string",
+      "values": [
+        "24",
+        "30",
+        "60"
+      ],
+      "default": "24"
+    },
+    "interpolation": {
+      "type": "string",
+      "values": [
+        "standard",
+        "motion"
+      ],
+      "default": "standard"
+    },
+    "resolution": {
+      "type": "string",
+      "values": [
+        "source",
+        "720",
+        "1080"
+      ],
+      "default": "source"
+    },
+    "aspect": {
+      "type": "string",
+      "values": [
+        "source",
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "default": "source"
+    }
+  },
+  "lyrics": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "offset": {
+      "type": "number",
+      "min": -600,
+      "max": 600,
+      "default": 0
+    },
+    "template": {
+      "type": "string",
+      "values": [
+        "default",
+        "karaoke",
+        "two-line",
+        "word-by-word"
+      ],
+      "default": "default"
+    },
+    "font": {
+      "type": "string",
+      "values": [
+        "Montserrat",
+        "Bebas Neue",
+        "Poppins",
+        "Anton",
+        "Cinzel",
+        "Playfair Display",
+        "Righteous",
+        "Syne",
+        "Caveat",
+        "Outfit",
+        "Arial",
+        "Georgia",
+        "Consolas",
+        "Orbitron",
+        "Permanent Marker",
+        "Space Grotesk",
+        "Monoton"
+      ],
+      "default": "Montserrat"
+    },
+    "fontSize": {
+      "type": "number",
+      "min": 12,
+      "max": 120,
+      "default": 42
+    },
+    "color": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#ffffff"
+    },
+    "outlineColor": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#000000"
+    },
+    "outline": {
+      "type": "number",
+      "min": 0,
+      "max": 12,
+      "default": 2.5
+    },
+    "glowColor": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#00ffff"
+    },
+    "glowIntensity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "bassEffect": {
+      "type": "string",
+      "values": [
+        "none",
+        "pulse",
+        "bounce",
+        "glow",
+        "glitch",
+        "wave_float",
+        "color_flash",
+        "tilt_shake",
+        "blur_pulse"
+      ],
+      "default": "none"
+    },
+    "bassEffects": {
+      "type": "array",
+      "default": []
+    },
+    "bassControls": {"type": "object", "default": {}},
+    "bassIntensity": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 60
+    },
+    "animation": {
+      "type": "string",
+      "values": [
+        "none",
+        "fade",
+        "pop",
+        "slide"
+      ],
+      "default": "fade"
+    },
+    "letterSpacing": {
+      "type": "number",
+      "min": -2,
+      "max": 20,
+      "default": 0
+    },
+    "textTransform": {
+      "type": "string",
+      "values": [
+        "none",
+        "uppercase",
+        "lowercase"
+      ],
+      "default": "none"
+    },
+    "boxStyle": {
+      "type": "string",
+      "values": [
+        "none",
+        "pill",
+        "box"
+      ],
+      "default": "none"
+    },
+    "background": {
+      "type": "string",
+      "maxLength": 7,
+      "default": "#000000"
+    },
+    "backgroundOpacity": {
+      "type": "number",
+      "min": 0,
+      "max": 1,
+      "default": 0.45
+    },
+    "align": {
+      "type": "string",
+      "values": [
+        "left",
+        "center",
+        "right"
+      ],
+      "default": "center"
+    },
+    "x": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    },
+    "y": {
+      "type": "number",
+      "min": 0,
+      "max": 95,
+      "default": 82
+    },
+    "width": {
+      "type": "number",
+      "min": 20,
+      "max": 100,
+      "default": 84
+    },
+    "autoFit": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "lyricLimits": {
+    "lines": 1000,
+    "text": 500,
+    "total": 200000,
+    "time": 86400
+  },
+  "clip": {
+    "asset": {
+      "type": "string",
+      "maxLength": 64,
+      "default": ""
+    },
+    "start": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    },
+    "end": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": null,
+      "nullable": true
+    },
+    "speed": {
+      "type": "number",
+      "min": 0.25,
+      "max": 2,
+      "default": 1
+    },
+    "transition": {
+      "type": "string",
+      "values": [
+        "fade",
+        "fadeblack",
+        "wipeleft",
+        "slideleft",
+        "pixelize",
+        "dissolve",
+        "circlecrop"
+      ],
+      "default": "fade"
+    },
+    "transitionDuration": {
+      "type": "number",
+      "min": 0,
+      "max": 10,
+      "default": 1
+    }
+  },
+  "marker": {
+    "id": {
+      "type": "string",
+      "maxLength": 64,
+      "default": ""
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 160,
+      "default": "İşaret"
+    },
+    "time": {
+      "type": "number",
+      "min": 0,
+      "max": 1200,
+      "default": 0
+    }
+  },
+  "limits": {
+    "tracks": 32,
+    "clips": 64,
+    "markers": 500,
+    "automationPoints": 1000
+  }
+}

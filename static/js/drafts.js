@@ -20,7 +20,7 @@ class ProjectDrafts {
     this.timer = this.deadline = null;
     if (!this.dirty) return true;
     try {
-      const project = validateProject(this.store.state), serialized = JSON.stringify(project);
+      const project = validateProject(this.store.state), serialized = serializeProject(project);
       if (serialized === this.last) { this.dirty = false; return true; }
       const current = {savedAt: this.now(), project};
       // setItem is atomic: a quota/storage error leaves the last good record intact.
@@ -43,7 +43,7 @@ class ProjectDrafts {
     if (!key.startsWith(ProjectDrafts.prefix)) throw new Error('Geçersiz taslak.');
     const readRecord = name => {
       const raw = this.storage().getItem(name);
-      if (!raw || raw.length > 2 * 1024 * 1024) throw new Error('Taslak okunamadı.');
+      if (!raw || projectJsonBytes(raw) > PROJECT_SCHEMA.limits.projectJsonBytes + 4096) throw new Error('Taslak okunamadı.');
       const record = JSON.parse(raw);
       if (record.version !== 1) throw new Error('Desteklenmeyen taslak sürümü.');
       return this.snapshot(record.current);
@@ -146,7 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.addEventListener('pagehide', () => journal.flush());
   document.addEventListener('project-before-open', event => {
-    if (!journal.flush()) { event.preventDefault(); return; }
+    if (!journal.flush()) event.preventDefault();
+  });
+  document.addEventListener('project-will-open', () => {
     journal.key = ProjectDrafts.prefix + crypto.randomUUID();
     journal.current = null;
   });

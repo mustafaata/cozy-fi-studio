@@ -4,12 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#20211e" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f2efe7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101114" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f3f5" media="(prefers-color-scheme: light)">
 <title>Cozy-Fi Studio</title>
 <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-<style>html,body{margin:0;background:#20211e;color:#eee9df;color-scheme:dark} @media(prefers-color-scheme:light){html,body{background:#f2efe7;color:#34372f;color-scheme:light}}</style>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.0">
+<style>html,body{margin:0;background:#101114;color:#f2f3f7;color-scheme:dark} @media(prefers-color-scheme:light){html,body{background:#f3f3f5;color:#252733;color-scheme:light}}</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4.0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/studio-shell.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/preset-browser.css') }}?v=1">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Monoton&amp;family=Orbitron:wght@600;800;900&amp;family=Permanent+Marker&amp;family=Space+Grotesk:wght@600;700&amp;display=swap">
 <script defer src="{{ url_for('static', filename='vendor/wavesurfer-7.12.12/wavesurfer.min.js') }}"></script>
 <script defer src="{{ url_for('static', filename='vendor/wavesurfer-7.12.12/regions.min.js') }}"></script>
@@ -35,7 +37,10 @@
   <!-- Ana Çalışma Modu Seçici (Studio Mode Switcher) -->
   <nav class="studio-modes" id="studioModes" aria-label="Çalışma Modları">
     <button type="button" class="mode-tab active" data-mode="mix" title="Ses Mikseri, Parçalar ve Sahne">
-      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v6m0 4v8M12 3v11m0 4v3M19 3v3m0 4v11"/><path d="M2 9h6v4H2zM9 14h6v4H9zM16 6h6v4h-6z"/></svg><span class="mode-label">Miks & Sahne</span>
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v6m0 4v8M12 3v11m0 4v3M19 3v3m0 4v11"/><path d="M2 9h6v4H2zM9 14h6v4h-6z"/></svg><span class="mode-label">Miks</span>
+    </button>
+    <button type="button" class="mode-tab" data-mode="video" title="Video montajı, kadraj ve sahne katmanları">
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5m-6 3 5 3-5 3z"/></svg><span class="mode-label">Kurgu</span>
     </button>
     <button type="button" class="mode-tab" data-mode="lyrics" title="Şarkı Sözleri ve Zamanlama Masası">
       <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg><span class="mode-label">Sözler</span>
@@ -44,12 +49,13 @@
       <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg><span class="mode-label">VideoFX</span>
     </button>
     <button type="button" class="mode-tab" data-mode="output" title="Video ve Ses Dışa Aktarma Ayarları">
-      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/></svg><span class="mode-label">Dışa Aktar</span>
+      <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M5 13v7h14v-7"/></svg><span class="mode-label">Çıktı</span>
     </button>
   </nav>
 
   <!-- Proje Araçları ve Render Butonu -->
   <nav class="project-actions" aria-label="Proje İşlemleri">
+    <button type="button" id="studioToolSearch" class="ghost tool-search-trigger" aria-label="Araç bul" aria-haspopup="dialog" aria-controls="studioToolDialog" aria-keyshortcuts="Control+k Meta+k"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><span>Araç bul</span><kbd>Ctrl/⌘ K</kbd></button>
     <div class="history-group">
       <button type="button" id="undoBtn" class="icon-tool-btn" disabled title="Geri al (Ctrl+Z)" aria-label="Geri al">↩</button>
       <button type="button" id="redoBtn" class="icon-tool-btn" disabled title="Yinele (Ctrl+Shift+Z)" aria-label="Yinele">↪</button>
@@ -71,8 +77,8 @@
 <main class="workspace">
 
   <!-- SOL SÜTUN: Tab-Nav & Inspector (Yeni Mimari) -->
-  <aside class="left-sidebar panel" aria-label="Ayarlar ve Kaynaklar">
-    <div class="inspector-heading"><span class="eyebrow">Çalışma masası</span><h2 id="inspectorTitle">Ana şarkı</h2></div>
+  <aside class="inspector-pane panel" aria-label="Ayarlar ve Kaynaklar">
+    <div class="inspector-heading"><span class="eyebrow">Düzenleyici</span><h2 id="inspectorTitle">Ana şarkı</h2></div>
     <div class="sidebar-top-tabs" role="group" aria-label="Kaynak seçimi">
       <button type="button" class="sidebar-tab source-select active" data-inspect="main" title="Ana Şarkı"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg><span>Ana Şarkı</span></button>
       <button type="button" class="sidebar-tab source-select" data-inspect="rain" title="Yağmur Efekti"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14a4 4 0 0 1 0-8 6 6 0 0 1 11 0 4 4 0 0 1 1 8M7 17l-1 3m6-3-1 3m6-3-1 3"/></svg><span>Yağmur</span></button>
@@ -82,6 +88,18 @@
       <button type="button" class="sidebar-tab" id="tabYt" title="YouTube"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg><span>YouTube</span></button>
     </div>
 
+        <nav class="inspector-tool-nav" aria-label="Seçili kaynağın araçlarına git">
+          <label>Araç<select aria-label="Ana şarkı çalışma aracı">
+            <option value="trackInspectorWrap-main">Miks</option>
+            <option value="microphoneEditor">Kayıt</option>
+            <option value="audioCompEditor">Take / comp</option>
+            <option value="spectralEditor">Ses işleme</option>
+            <option value="audioWarpEditor">Warp</option>
+            <option value="audioRoutingEditor">Gruplar</option>
+            <option value="sequenceEditor">Sekans</option>
+          </select></label>
+          <button type="button" class="ghost" aria-label="Seçili aracı aç">Aç</button>
+        </nav>
     <div class="sidebar-bottom-content">
       <!-- ANA ŞARKI GÖRÜNÜMÜ -->
       <div id="inspector-main" class="sidebar-view active-view">
@@ -108,7 +126,7 @@
                   <span class="fx-val-badge" id="speedBadge">0.85×</span>
                 </div>
                 <div class="fx-row">
-                  <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.01" value="0.85">
+                  <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.01" value="0.85" aria-label="Ana şarkı hızı">
                   <input type="number" id="speedOut" class="number-input compact-num" min="0.5" max="1.5" step="0.01" value="0.85" aria-label="Hız">
                 </div>
               </div>
@@ -119,7 +137,7 @@
                   <span class="fx-val-badge" id="reverbBadge">40%</span>
                 </div>
                 <div class="fx-row">
-                  <input type="range" id="reverbSlider" min="0" max="100" step="1" value="40">
+                  <input type="range" id="reverbSlider" min="0" max="100" step="1" value="40" aria-label="Ana şarkı yankısı · %">
                   <input type="number" id="reverbOut" class="number-input compact-num" min="0" max="100" step="1" value="40" aria-label="Yankı">
                 </div>
               </div>
@@ -130,8 +148,8 @@
                   <span class="fx-val-badge" id="bassBadge">+0 dB</span>
                 </div>
                 <div class="fx-row">
-                  <input type="range" id="bassSlider" min="0" max="100" step="1" value="0">
-                  <input type="number" id="bassOut" class="number-input compact-num" min="0" max="100" step="1" value="0" aria-label="Bas">
+                  <input type="range" id="bassSlider" min="0" max="{{ project_schema.audioControls.bassMaxGainDb }}" step="0.1" value="0" aria-label="Bas kazancı · dB">
+                  <input type="number" id="bassOut" class="number-input compact-num" min="0" max="{{ project_schema.audioControls.bassMaxGainDb }}" step="0.1" value="0" aria-label="Bas kazancı · dB">
                 </div>
               </div>
             </div>
@@ -149,6 +167,12 @@
             <label class="check-row vinyl-check"><input type="checkbox" id="vinylToggle"><span>Perdeyi Koru (Vinyl / Tape Mode)</span></label>
           </div>
         </section>
+        <details id="microphoneEditor" class="microphone-editor"><summary>Mikrofonla seslendirme</summary></details>
+        <details id="audioCompEditor" class="audio-comp-editor"><summary>Take ve comp editörü</summary></details>
+        <details id="audioRoutingEditor" class="audio-routing-editor"><summary>Ses grupları ve send / return</summary></details>
+        <details id="spectralEditor" class="spectral-editor"><summary>Spektral ses temizleme</summary></details>
+        <details id="audioWarpEditor" class="audio-warp-editor"><summary>Perde korumalı esnetme ve warp</summary></details>
+        <details id="sequenceEditor" class="sequence-editor"><summary>İç içe sekanslar</summary></details>
       </div>
 
       <!-- YAĞMUR GÖRÜNÜMÜ -->
@@ -183,6 +207,15 @@
 
       <!-- GÖRÜNTÜ GÖRÜNÜMÜ -->
       <div id="inspector-video" class="sidebar-view hidden">
+        <section id="videoPanel">
+          <div id="videoControls"></div>
+          <div class="inspector-card">
+            <label class="check-row"><input type="checkbox" id="vhsToggle"><span>VHS Kaset Dokusu · %82 / γ 1,3</span></label>
+          </div>
+        </section>
+        <section id="videoAuxTools" class="video-aux-tools" aria-label="Katman ve medya araçları"></section>
+        <div id="videoImports" class="source-imports">
+          <h3>Kaynak dosyaları</h3>
         <div class="inspector-card compact-upload">
            <div class="source-upload-row">
              <div class="card-info">
@@ -213,28 +246,27 @@
                <label class="vol">
                  <span>Konum X (%)</span>
                  <input type="range" id="overlayX" min="0" max="100" value="50">
-                 <input type="number" id="overlayXOut" class="number-input compact-num" min="0" max="100" value="50">
+                 <input type="number" id="overlayXOut" class="number-input compact-num" min="0" max="100" step="any" value="50" aria-label="Ön plan konum X · %">
                </label>
                <label class="vol">
                  <span>Konum Y (%)</span>
                  <input type="range" id="overlayY" min="0" max="100" value="50">
-                 <input type="number" id="overlayYOut" class="number-input compact-num" min="0" max="100" value="50">
+                 <input type="number" id="overlayYOut" class="number-input compact-num" min="0" max="100" step="any" value="50" aria-label="Ön plan konum Y · %">
                </label>
                <label class="vol">
                  <span>Boyut (%)</span>
-                 <input type="range" id="overlayScale" min="10" max="250" value="100">
-                 <input type="number" id="overlayScaleOut" class="number-input compact-num" min="10" max="250" value="100">
+                 <input type="range" id="overlayScale" min="{{ project_schema.overlay.scale.min }}" max="{{ project_schema.overlay.scale.max }}" step="any" value="100" aria-label="Ön plan boyutu · %">
+                 <input type="number" id="overlayScaleOut" class="number-input compact-num" min="{{ project_schema.overlay.scale.min }}" max="{{ project_schema.overlay.scale.max }}" step="any" value="100" aria-label="Ön plan boyutu · %">
                </label>
                <label class="vol">
                  <span>Opaklık (%)</span>
                  <input type="range" id="overlayOpacity" min="0" max="100" value="100">
-                 <input type="number" id="overlayOpacityOut" class="number-input compact-num" min="0" max="100" value="100">
+                 <input type="number" id="overlayOpacityOut" class="number-input compact-num" min="0" max="100" step="any" value="100" aria-label="Ön plan opaklığı · %">
                </label>
              </div>
            </div>
         </div>
 
-        <section id="videoPanel">
           <div class="inspector-card">
             <h3>Görüntü URL İçe Aktar</h3>
             <div class="url-row">
@@ -243,11 +275,7 @@
             </div>
             <button type="button" id="openGiphyBtn" class="ghost action-btn full-btn">Giphy'de ara</button>
           </div>
-          <div id="videoControls"></div>
-          <div class="inspector-card">
-            <label class="check-row"><input type="checkbox" id="vhsToggle"><span>VHS Kaset Dokusu · %82 / γ 1,3</span></label>
-          </div>
-        </section>
+        </div>
       </div>
 
       <!-- VIDEOFX GÖRÜNÜMÜ -->
@@ -315,7 +343,7 @@
             <button id="lyricsAddText" type="button" class="ghost full-btn">Satırları Ekle</button>
             <div class="lyric-transfer">
               <label class="file-btn compact-action-btn" for="lyricsImport" role="button" tabindex="0">İçe Al</label>
-              <input id="lyricsImport" type="file" accept=".lrc,.srt,.txt" class="sr-only">
+              <input id="lyricsImport" type="file" accept=".lrc,.srt,.txt,.vtt,.ass" class="sr-only">
               <select id="lyricsTimebase" aria-label="Dosya zaman tabanı"><option value="source">Şarkı zamanı</option><option value="project">Proje zamanı</option></select>
               <button id="lyricsLrc" type="button" class="ghost">LRC</button>
               <button id="lyricsSrt" type="button" class="ghost">SRT</button>
@@ -346,7 +374,7 @@
               <button id="lyricsClearSelection" type="button" class="ghost" disabled>Temizle</button>
             </div>
             <div class="trim-controls">
-              <label class="edit-field"><span>Kaydır · sn</span><input type="number" id="lyricsShiftValue" step="0.01" placeholder="0.5" aria-label="Kaydırma miktarı"></label>
+              <label class="edit-field"><span>Kaydır</span><input data-time-unit type="number" id="lyricsShiftValue" step="0.01" placeholder="0.5" aria-label="Kaydırma miktarı"></label>
               <button id="lyricsShift" type="button" class="ghost" disabled>Seçiliyi Kaydır</button>
               <button id="lyricsShiftAll" type="button" class="ghost" title="Tüm zamanlanmış satırları belirtilen süre kadar kaydırır">Tümünü Kaydır</button>
             </div>
@@ -370,8 +398,8 @@
           <details class="lyric-tools">
             <summary>Bölüm Yeniden Çözümleme</summary>
             <div class="trim-controls">
-              <label class="edit-field"><span>Başlangıç · sn</span><input type="number" id="lyricsRangeStart" min="0" max="86400" step="0.01" placeholder="0" aria-label="Bölüm başlangıcı"></label>
-              <label class="edit-field"><span>Bitiş · sn</span><input type="number" id="lyricsRangeEnd" min="0" max="86400" step="0.01" placeholder="—" aria-label="Bölüm bitişi"></label>
+              <label class="edit-field"><span>Başlangıç</span><input data-time-unit type="number" id="lyricsRangeStart" min="0" max="86400" step="0.01" placeholder="0" aria-label="Bölüm başlangıcı"></label>
+              <label class="edit-field"><span>Bitiş</span><input data-time-unit type="number" id="lyricsRangeEnd" min="0" max="86400" step="0.01" placeholder="—" aria-label="Bölüm bitişi"></label>
             </div>
             <div class="lyric-transfer">
               <span id="lyricsRangeCount" class="meta-tag"></span>
@@ -393,6 +421,7 @@
           <div class="inspector-card">
             <h3>Ses Kalitesi & Normalizasyon</h3>
             <div id="masterControls"></div>
+            <details id="loudnessEditor" class="loudness-editor"><summary>LUFS ölçümü ve hedefleme</summary></details>
             <div class="output-facts">
               <span>Format:</span><b>MP4 · H.264 / AAC</b>
               <span>Hedef:</span><b>outputs/ dizini</b>
@@ -469,7 +498,7 @@
     <div class="panel-head">
       <div class="panel-title-wrap">
         <span class="section-index" aria-hidden="true">01</span>
-        <h2 id="preview-title">Sahne</h2>
+        <h2 id="preview-title">Önizleme</h2>
         <span id="previewState" class="status-indicator" role="status">—</span>
       </div>
       <div class="preview-actions">
@@ -499,10 +528,11 @@
               <circle cx="99" cy="22" r="4" class="record-label"/>
             </svg>
           </div>
-          <div class="empty-stage-title" data-empty-title="Biraz ses, biraz atmosfer.">Biraz ses, biraz atmosfer.</div>
-          <div class="empty-stage-desc">Sahnene bir video veya GIF ekle. Gerisi senin ritminde.</div>
+          <div class="empty-stage-title" data-empty-title="Yeni bir sahneye başlayın.">Yeni bir sahneye başlayın.</div>
+          <div class="empty-stage-desc">Sesinizi ekleyin, görüntüyü yerleştirin. Hikâyeyi zaman çizgisinde bir araya getirin.</div>
           <div class="empty-stage-actions">
             <button type="button" id="stageMediaBtn" class="stage-cta-btn primary-cta">＋ Medya seç</button>
+            <button type="button" id="stageAudioBtn" class="stage-cta-btn secondary-cta">Ses ekle</button>
             <button type="button" id="stageGiphyBtn" class="stage-cta-btn secondary-cta">Giphy'de ara</button>
           </div>
         </div>
@@ -515,11 +545,21 @@
     <div class="timeline-head panel-head">
       <div class="timeline-title-wrap">
         <span class="section-index" aria-hidden="true">02</span>
-        <h2>Ses kanalları</h2>
+        <h2>Zaman çizgisi</h2>
         <span id="mainInfo" class="meta-tag">Tam parça</span>
       </div>
     </div>
 
+    <div class="timeline-tools">
+      <details class="rhythm-editor"><summary aria-label="BPM ve ritim ızgarası">Ritim <span class="rhythm-summary">120 BPM</span></summary></details>
+      <label>Zoom <input id="timelineZoom" type="range" min="0" max="8" step="0.1" value="0" aria-label="Zaman çizgisi yakınlığı"></label>
+      <output id="timelineZoomOut">1×</output>
+      <button id="timelineFit" type="button" class="ghost">Projeye sığdır</button>
+      <button id="timelineFocus" type="button" class="ghost">Seçime odaklan</button>
+      <button id="timelineAutomation" type="button" class="ghost" aria-pressed="false">Ses eğrileri</button>
+      <button id="timelineRipple" type="button" class="ghost" disabled>Ripple</button>
+      <label class="timeline-pan">Kaydır <input id="timelinePan" type="range" min="0" max="0" step="0.001" value="0" aria-label="Zaman çizgisini yatay kaydır"></label>
+    </div>
     <!-- Cetvel ve Markerlar -->
     <div class="ruler-container">
       <div class="ruler" id="timelineRuler" aria-hidden="true"></div>
@@ -528,6 +568,16 @@
 
     <input type="range" class="project-seek" id="projectSeek" min="0" max="0" value="0" step="0.001" disabled aria-label="Proje zamanı">
 
+    <div class="clip-selection-tools" role="group" aria-label="Toplu klip düzenleme">
+      <button type="button" class="ghost" data-selection="mode" aria-pressed="false" disabled>Çoklu seçim</button>
+      <output class="selection-count" aria-live="polite">0 klip seçili</output>
+      <button type="button" class="ghost" data-selection="copy" disabled>Seçimi kopyala</button>
+      <button type="button" class="ghost" data-selection="paste" disabled>İmlece yapıştır</button>
+      <button type="button" class="ghost" data-selection="duplicate" disabled>Seçimi çoğalt</button>
+      <button type="button" class="ghost" data-selection="delete" disabled>Seçimi sil</button>
+      <button type="button" class="ghost" data-selection="clear" disabled>Seçimi temizle</button>
+      <span class="selection-hint">Shift + tık: ekle/çıkar · Boş şeritte sürükle: kutuyla seç · ←/→: 1 kare</span>
+    </div>
     <!-- Parçalar (Kompakt DAW şeritleri) -->
     <div class="tracks-container">
       <article class="track track-main" data-track="main">
@@ -545,6 +595,7 @@
             </label>
           </div>
           <span class="zoom-tag hidden" id="zoomTagMain">1.0×</span>
+          <label class="group-lock-label" title="Şeridi toplu düzenlemeden koru"><input type="checkbox" class="group-lock" aria-label="main şeridini toplu düzenlemeden koru" disabled>Kilit</label>
         </div>
         <div id="waveform-main" class="wave"></div>
       </article>
@@ -564,6 +615,7 @@
             </label>
           </div>
           <span class="zoom-tag hidden" id="zoomTagRain">1.0×</span>
+          <label class="group-lock-label" title="Şeridi toplu düzenlemeden koru"><input type="checkbox" class="group-lock" aria-label="rain şeridini toplu düzenlemeden koru" disabled>Kilit</label>
         </div>
         <div id="waveform-rain" class="wave"></div>
       </article>
@@ -583,6 +635,7 @@
             </label>
           </div>
           <span class="zoom-tag hidden" id="zoomTagFire">1.0×</span>
+          <label class="group-lock-label" title="Şeridi toplu düzenlemeden koru"><input type="checkbox" class="group-lock" aria-label="fire şeridini toplu düzenlemeden koru" disabled>Kilit</label>
         </div>
         <div id="waveform-fire" class="wave"></div>
       </article>
@@ -601,6 +654,7 @@
           <option value="default">Standart (Altyazı)</option>
           <option value="karaoke">Karaoke (Vurgulu)</option>
           <option value="two-line">İki Satır (Kayan)</option>
+          <option value="word-by-word">Kelime kelime (Pop)</option>
         </select>
         <button type="button" class="ghost" data-inspect="main">Sesler</button>
       </div>
@@ -611,6 +665,22 @@
       </div>
     </div>
     <div id="lyricsList" class="lyrics-list" role="list" aria-label="Şarkı zamanına göre söz satırları"></div>
+    <details id="lyricWordEditor" class="word-editor">
+      <summary>Kelime zamanları ve karaoke</summary>
+      <p class="word-summary"></p>
+      <div class="word-tools">
+        <button type="button" class="ghost word-distribute">Kelimelere dağıt</button>
+        <button type="button" class="ghost word-reset">Tahmine dön</button>
+        <button type="button" class="ghost word-start-now">Kelime başlangıcını işaretle</button>
+        <button type="button" class="ghost word-end-now">Kelime bitişini işaretle</button>
+        <label>Yakınlaştır <input class="word-zoom" type="range" min="1" max="8" step="0.5" value="1"></label>
+      </div>
+      <p class="word-help">Kaynak saniyesi · Ortadan taşı, kenarlardan süreyi değiştir. Oklar: 0,01 sn; Shift: 0,1 sn; Alt: 0,001 sn. Esc sürüklemeyi iptal eder.</p>
+      <div class="word-viewport"><div class="word-timeline" role="group" aria-label="Kelime zaman şeridi"></div></div>
+      <div class="word-columns" aria-hidden="true"><span>Kelime · dinle</span><span>Başlangıç · sn</span><span>Bitiş · sn</span></div>
+      <div class="word-fields"></div>
+      <p class="word-status" role="status" aria-live="polite"></p>
+    </details>
   </section>
 
 </main>
@@ -632,6 +702,11 @@
     <div class="timecode-display" title="Geçerli / Toplam Proje Süresi">
       <span class="timecode-dot"></span>
       <span id="timeReadout" class="time-readout">0:00 / 0:00</span>
+    </div>
+    <div class="frame-navigation">
+      <button id="frameBack" type="button" class="ghost" aria-label="Önceki kare" title="Önceki kare">‹</button>
+      <input id="frameTimecode" type="text" value="00:00:00:00" aria-label="Proje zaman kodu" title="Saat:dakika:saniye:kare" spellcheck="false" inputmode="numeric">
+      <button id="frameNext" type="button" class="ghost" aria-label="Sonraki kare" title="Sonraki kare">›</button>
     </div>
 
     <!-- Web Sitesi Dinleme Sesi (Render/Çıktıyı etkilemez) -->
@@ -658,6 +733,15 @@
 
 </div><!-- .app-shell -->
 
+<dialog id="studioToolDialog" class="tool-dialog" aria-labelledby="studioToolTitle">
+  <div class="tool-dialog-head"><div><span class="eyebrow">Çalışma alanı</span><h2 id="studioToolTitle">Aradığınız araca gidin</h2></div><button type="button" class="ghost" id="studioToolClose" aria-label="Araç aramasını kapat">Esc</button></div>
+  <label class="tool-search-label" for="studioToolQuery">Araç adı veya işlem</label>
+  <input type="search" id="studioToolQuery" placeholder="Örn. otomasyon, renk, warp…" autocomplete="off" aria-controls="studioToolResults">
+  <output id="studioToolCount" class="tool-count" role="status"></output>
+  <div id="studioToolResults" class="tool-results" role="group" aria-label="Bulunan araçlar"></div>
+  <p class="tool-dialog-help">↑ ↓ gezin · Enter aç · Esc kapat</p>
+</dialog>
+
 <!-- GIPHY Modalı -->
 <div id="giphyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="giphy-title">
   <div class="modal-card">
@@ -680,32 +764,199 @@
 
 <script id="lyricFontMetrics" type="application/json">{{ lyric_fonts|tojson }}</script>
 <script id="projectSchema" type="application/json">{{ project_schema|tojson }}</script>
+<script defer src="{{ url_for('static', filename='js/ui-lifetime.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/media-operation.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/project.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-channels.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/rhythm.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/parameter-curves.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-video.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-temporal.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-shutter.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-motion-smear.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-motion-smear-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-time-slice.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-optics.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-optics-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-finish.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-video-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-geometry.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-geometry-shader.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/creative-geometry-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-fx.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-kinetic.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-kinetic-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-finish.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-contours.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-contour-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-materials.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/text-material-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-fx.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-geometry.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-geometry-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-fields.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-field-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-finish.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reactive-analysis-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/motion-path.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-keyframes.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-fft.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/visual-signal.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/spectral-audio.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-processing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/main-montage-playback.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/dynamics-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-presets.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-modulation-dsp.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-preset-worklet-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-modulation-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-distortion-dsp.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-distortion-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-character-dsp.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-character-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-preset-node.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-preset-audition.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-prepared-mix.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/track-effects.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-routing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/loudness-node.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/audio.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/control-inputs.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/export-sections.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/export-section-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/mouse.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/packages.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/drafts.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/sample.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-time.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-time-sampler.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/temporal-media.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/frame-software.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/frame-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-transitions.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-color.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/chroma-key.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lut.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-color-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/perspective.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/perspective-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-mask.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/mask-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layers.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/vector-shapes.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/particles.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/titles.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layer-media.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/scene-renderer.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-linking.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/split-cuts.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/multicam.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layer-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/main-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-selection.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/video.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/bass-controls.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/video-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/preset-browser.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/transition-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/transition-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/color-curve-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/color-comparison.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-color-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-time-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/slip-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/slip-frame-preview.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-slip-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-trim.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/slide-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-slide-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/rolling-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/rolling-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/mask-canvas.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/mask-keyframes.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/mask-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/video-clips.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-audio-editor.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/split-cut-editor.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/multicam-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/video-clips-preview.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/preview-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-word-renderer.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyric-renderer.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyrics.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/subtitle-tracks.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/html-entities.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/subtitle-formats.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/ass-subtitles.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyric-review.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyric-range.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyric-bulk.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lyric-word-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/lyrics-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/subtitle-track-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/subtitle-format-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/workspace.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/dynamic-tracks.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/curve-segment-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-recording.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/microphone-recording.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-worker.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-comp.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-tools.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-recorder.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/automation-parameters.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/automation-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/eq-response.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/sidechain-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/dynamics-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/layer-effects-editor.js') }}"></script>
 <script defer src="{{ url_for('static', filename='js/markers.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/media-library.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/timeline-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/rhythm-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/main-clip-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/precision-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/time-unit-controls.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/transform-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-transform-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/video-keyframe-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layer-timeline.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layer-canvas.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/visual-layer-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/chroma-key-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/lut-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/perspective-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/motion-path-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/motion-tracking.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/motion-tracking-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reframe.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/reframe-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/vector-shape-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/particle-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/title-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/microphone-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-comp-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-routing-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/spectral-canvas.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/spectral-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-warp.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-warp-canvas.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/audio-warp-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/loudness-plot.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/loudness-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/color-scopes.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/color-scope-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/clip-selection-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/ripple-editing.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/ripple-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/sequences.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/sequence-instances.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/sequence-editor.js') }}"></script>
+<script defer src="{{ url_for('static', filename='js/inspector-tools.js') }}?v=2"></script>
 </body></html>

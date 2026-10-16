@@ -14,22 +14,26 @@ function lyricAnimationFrames(p,time) {
     if(!active)return [];
     if(p.lyrics.animation==='none')return [{line:active,entrance:1,exit:1,opacity:1}];
     const rows=sortedLyricRows(p.lyrics.lines);
-    const index=rows.indexOf(active),previous=rows[index-1],next=rows[index+1],rate=p.effects.speed;
-    const source=p.tracks.main.start+time*rate-p.lyrics.offset;
+    const projectTime=p.lyrics.timeBase==='project';
+    const index=rows.indexOf(active),previous=rows[index-1],next=rows[index+1],rate=projectTime?1:p.effects.speed;
+    const source=lyricClockTime(p,time);
+    const item=!projectTime&&p.mainClips?mainTimeline(p).find(c=>time>=c.offset&&time<c.end):null;
+    const sourceStart=item?item.clip.start-p.lyrics.offset:-Infinity;
+    const sourceEnd=item?item.clip.end-p.lyrics.offset:Infinity;
     const span=row=>(row.end-row.start)/rate;
     const adjacent=(a,b)=>a&&b&&Math.abs(a.end-b.start)<1e-6;
     const duration=Math.min(LYRIC_TRANSITION_SECONDS,span(active)/2,
       adjacent(previous,active)?span(previous)/2:Infinity);
-    const entrance=lyricEase((source-active.start)/rate/duration);
-    const remaining=Math.min((active.end-source)/rate,projectDuration(p)-time);
+    const entrance=lyricEase((source-Math.max(active.start,sourceStart))/rate/duration);
+    const remaining=Math.min((active.end-source)/rate,projectDuration(p)-time,item?item.end-time:Infinity);
     const hasFollowing=adjacent(active,next)&&
-      (next.start+p.lyrics.offset-p.tracks.main.start)/rate<projectDuration(p);
+      (item?next.start<sourceEnd:projectTime?next.start+p.lyrics.offset<projectDuration(p):(next.start+p.lyrics.offset-p.tracks.main.start)/rate<projectDuration(p));
     const exit=hasFollowing?1:
       lyricEase(remaining/Math.min(LYRIC_TRANSITION_SECONDS,span(active)/2));
     const frames=[];
     // Retain the outgoing cue during the next cue's entrance. A real lyric gap
     // stays empty; no future words appear before their source timestamp.
-    if(adjacent(previous,active)&&entrance<1)frames.push({line:previous,entrance:1,exit:1-entrance,opacity:1-entrance});
+    if(adjacent(previous,active)&&previous.end>sourceStart&&entrance<1)frames.push({line:previous,entrance:1,exit:1-entrance,opacity:1-entrance});
     frames.push({line:active,entrance,exit,opacity:entrance*exit});
     return frames;
 }
@@ -53,18 +57,35 @@ function lyricColorMix(from,to,amount) {
       Math.max(0,Math.min(1,amount))).toString(16).padStart(2,'0')).join('');
 }
 
-function drawLyricLayer(canvas,p,time,metrics,signal=null) {
+function drawLyricLayer(canvas,p,time,metrics,signal=null,backdrop=null,reactiveFrame=null) {
     canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    if(!p.lyrics.enabled)return;
+    if(p.lyrics.textFx?.enabled&&p.lyrics.textFx.preset==='TFX-35'){
+      const fx=textFxAtTime(p.lyrics.textFx,time,0,projectDuration(p)),source=lyricClockTime(p,time),rate=p.lyrics.timeBase==='project'?1:p.effects.speed,next=fx&&sortedLyricRows(p.lyrics.lines).find(line=>line.start>source&&line.start-source<=fx.p.preview*rate);
+      const nextTime=next?(p.lyrics.timeBase==='project'?next.start+p.lyrics.offset:mainProjectTime(p,next.start+p.lyrics.offset,time)):null;
+      if(next&&nextTime!==null&&nextTime>=time&&nextTime<projectDuration(p))drawLyricCue(canvas,p,time,metrics,signal,{line:next,entrance:1,exit:1,opacity:.45,relayPreview:true},backdrop,reactiveFrame);
+    }
     for(const frame of lyricAnimationFrames(p,time)) {
-      if(frame.opacity>0)drawLyricCue(canvas,p,time,metrics,signal,frame);
+      if(frame.opacity>0)drawLyricCue(canvas,p,time,metrics,signal,frame,backdrop,reactiveFrame);
     }
 }
 
-function drawLyricCue(canvas,p,time,metrics,signal,frame) {
-    const style=p.lyrics;
+const subtitleCueStyleCache=new WeakMap();
+const localizedLyricStyles=new WeakMap();
+function localizedLyricStyle(global,line,language){
+  const style=lyricCueStyle(global,line);if(!language||language==='tr'||language==='und')return style;
+  let entry=localizedLyricStyles.get(style);if(!entry||entry.language!==language){entry={language,style:{...style,language}};localizedLyricStyles.set(style,entry);}return entry.style;
+}
+function lyricCueStyle(global,line) {
+    if(!line.cueStyle)return global;let entry=subtitleCueStyleCache.get(line.cueStyle);
+    if(!entry||entry.global!==global){entry={global,style:{...global,...line.cueStyle}};subtitleCueStyleCache.set(line.cueStyle,entry);}return entry.style;
+}
+function drawLyricCue(canvas,p,time,metrics,signal,frame,backdrop=null,reactiveFrame=null) {
+    let style=localizedLyricStyle(p.lyrics,frame.line,p.subtitleTracks?.find(t=>t.id===p.subtitles.active)?.language);
+    if(frame.relayPreview){const fx=textFxAtTime(style.textFx,time,0,projectDuration(p));style={...style,textFx:validateCreativeTextFx({}),y:Math.min(95,style.y+style.fontSize/720*100*(1+fx.p.gap/100)),color:'#'+creativeHue(fx.p.hue).map(v=>Math.round((.35+.55*v)*255).toString(16).padStart(2,'0')).join('')};}
     const template = style.template || 'default';
     const isKaraoke = (template === 'karaoke');
-    const isTwoLine = (template === 'two-line');
+    const isTwoLine = (template === 'two-line'&&!(style.textFx?.preset==='TFX-35'&&textFxAtTime(style.textFx,time,0,projectDuration(p))));
     const isWordByWord = (template === 'word-by-word');
     const {line,entrance,exit,opacity}=frame;
 
@@ -91,8 +112,8 @@ function drawLyricCue(canvas,p,time,metrics,signal,frame) {
     const lines = lyricLayout(line.text, style, w, h, metrics);
     const size = lines.effectiveSize || (style.fontSize * h / 720);
     const lineHeight = size * (metric.lineHeight || 1.2);
-    const x = w * style.x / 100, y = h * style.y / 100, pad = size * 0.22;
     const totalH = lines.length * lineHeight;
+    const x=w*style.x/100,y=h*style.y/100-(style.anchor==='bottom'?totalH:style.anchor==='middle'?totalH/2:0),pad=size*.22;
     const centerY = y + totalH / 2;
 
     ctx.save();
@@ -133,7 +154,7 @@ function drawLyricCue(canvas,p,time,metrics,signal,frame) {
       }
     }
 
-    ctx.font = `${size}px "${fontName}"`;
+    ctx.font = `${style.italic?'italic ':''}${style.bold?'700 ':''}${size}px "${fontName}"`;
     ctx.textBaseline = 'top';
     ctx.textAlign = style.align || 'center';
     ctx.lineJoin = 'round';
@@ -171,158 +192,25 @@ function drawLyricCue(canvas,p,time,metrics,signal,frame) {
 
     const flashTextColor = activeFx.includes('color_flash') ? lyricColorMix(style.color || '#ffffff',
       style.glowColor || '#00ffff',responses.color_flash.flash) : (style.color || '#ffffff');
+    // Include already-painted cue boxes and earlier crossfading cues once.
+    const textBackdrop=textMaterialNeedsBackdrop(style.textFx)?textMaterialCompositeBackdrop(canvas,backdrop):null;
 
-    if (isWordByWord) {
-      // ── Word-by-Word Energetic TikTok/Reels Pop Mode ──
-      const dur = Math.max(0.001, line.end - line.start);
-      const source = p.tracks.main.start + time * p.effects.speed - p.lyrics.offset;
-      const relTime = Math.max(0, Math.min(dur, source - line.start));
-
-      // Build timed words list
-      const flatWords = [];
-      lines.forEach((lText, lIdx) => {
-        const wordsInLine = lText.split(/\s+/).filter(Boolean);
-        wordsInLine.forEach((wText, wIdx) => {
-          flatWords.push({ text: wText, lineIdx: lIdx, wordIdx: wIdx });
-        });
-      });
-
-      const totalChars = Math.max(1, flatWords.reduce((sum, item) => sum + Math.max(2, item.text.length), 0));
-      let wStart = 0;
-      const timedWords = flatWords.map((item, idx) => {
-        const wDur = (idx === flatWords.length - 1)
-          ? (dur - wStart)
-          : (dur * Math.max(2, item.text.length) / totalChars);
-        const obj = { ...item, start: wStart, end: wStart + wDur, globalIdx: idx };
-        wStart += wDur;
-        return obj;
-      });
-
-      let activeIdx = timedWords.findIndex(tw => relTime >= tw.start && relTime < tw.end);
-      if (activeIdx < 0 && relTime >= dur) activeIdx = timedWords.length - 1;
-      if (activeIdx < 0) activeIdx = 0;
-
-      // Render line-by-line with word-level pop highlight
-      let currentWordGlobal = 0;
-      lines.forEach((lText, i) => {
-        const top = y + i * lineHeight;
-        const wordsInLine = lText.split(/\s+/).filter(Boolean);
-        const wordsW = wordsInLine.map(w => ctx.measureText(w).width);
-        const spaceW = ctx.measureText(' ').width;
-        const totalLineW = wordsW.reduce((a, b) => a + b, 0) + spaceW * Math.max(0, wordsInLine.length - 1);
-        let curX = (style.align === 'left') ? x : (style.align === 'right') ? x - totalLineW : x - totalLineW / 2;
-
-        wordsInLine.forEach((wText, wIdx) => {
-          const gIdx = currentWordGlobal++;
-          const tw = timedWords[gIdx];
-          const wWidth = wordsW[wIdx];
-          const isActive = (gIdx === activeIdx);
-          const isPassed = (gIdx < activeIdx);
-
-          ctx.save();
-          if (isActive) {
-            const wordDuration=Math.max(0.001,tw.end-tw.start);
-            const wProg = Math.max(0, Math.min(1, (relTime - tw.start) / wordDuration));
-            const ramp=Math.min(.12*p.effects.speed,wordDuration/2);
-            const enter=lyricEase((relTime-tw.start)/ramp),leave=lyricEase((tw.end-relTime)/ramp);
-            const highlight=enter*leave;
-            ctx.globalAlpha=opacity*((.28+.72*enter)*leave+.55*(1-leave));
-            const pulse = Math.sin(wProg * Math.PI) ** 2;
-            const popScale = 1.0 + pulse * 0.12;
-            const popJump = pulse * (size * 0.08);
-
-            const wCenterX = curX + wWidth / 2;
-            const wCenterY = top + lineHeight / 2;
-            ctx.translate(wCenterX, wCenterY - popJump);
-            ctx.scale(popScale, popScale);
-            ctx.translate(-wCenterX, -wCenterY);
-
-            ctx.shadowColor = style.glowColor || '#00ffff';
-            ctx.shadowBlur = (totalGlow+(Math.max(14,totalGlow*1.6)-totalGlow)*highlight) * h / 720;
-            ctx.textAlign = 'left';
-            const outlineW = (2+.5*highlight) * (style.outline ?? 2.5) * h / 720;
-            if (outlineW > 0.1) {
-              ctx.lineWidth = outlineW;
-              ctx.strokeStyle = style.outlineColor || '#000000';
-              ctx.strokeText(wText, curX, top);
-            }
-            ctx.fillStyle = lyricColorMix(flashTextColor,style.glowColor || '#00ffff',highlight);
-            ctx.fillText(wText, curX, top);
-          } else {
-            ctx.globalAlpha = opacity * (isPassed ? 0.55 : 0.28);
-            ctx.textAlign = 'left';
-            const outlineW = 2 * (style.outline ?? 2.5) * h / 720;
-            if (outlineW > 0.1) {
-              ctx.lineWidth = outlineW;
-              ctx.strokeStyle = style.outlineColor || '#000000';
-              ctx.strokeText(wText, curX, top);
-            }
-            ctx.fillStyle = flashTextColor;
-            ctx.fillText(wText, curX, top);
-          }
-          ctx.restore();
-
-          curX += wWidth + spaceW;
-        });
-      });
-
-    } else if (isKaraoke) {
-      const dur = Math.max(0.001, line.end - line.start);
-      const source = p.tracks.main.start + time * p.effects.speed - p.lyrics.offset;
-      const progress = Math.max(0, Math.min(1, (source - line.start) / dur));
-
-      // Inactive / waiting text
-      ctx.globalAlpha = opacity * 0.40;
-      lines.forEach((text, i) => {
-        const top = y + i * lineHeight;
-        const outlineWidth = 2 * (style.outline ?? 2.5) * h / 720;
-        if (outlineWidth > 0.1) {
-          ctx.lineWidth = outlineWidth;
-          ctx.strokeStyle = style.outlineColor || '#000000';
-          ctx.strokeText(text, x, top);
-        }
-        ctx.fillStyle = flashTextColor;
-        ctx.fillText(text, x, top);
-      });
-      ctx.globalAlpha = opacity;
-
-      // Active singing sweep wipe with neon highlight
-      lines.forEach((text, i) => {
-        const top = y + i * lineHeight;
-        const textW = ctx.measureText(text).width;
-        const left = style.align === 'left' ? x : style.align === 'right' ? x - textW : x - textW / 2;
-        const lineProgress = Math.max(0, Math.min(1, (progress - (i / lines.length)) * lines.length));
-        if (lineProgress > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(left - pad, top - pad * 0.8, (textW + 2 * pad) * lineProgress, lineHeight + 1.6 * pad);
-          ctx.clip();
-
-          ctx.shadowColor = style.glowColor || '#00ffff';
-          ctx.shadowBlur = Math.max(10, totalGlow * 1.5) * h / 720;
-          const outlineWidth = 2 * (style.outline ?? 2.5) * h / 720;
-          if (outlineWidth > 0.1) {
-            ctx.lineWidth = outlineWidth;
-            ctx.strokeStyle = style.outlineColor || '#000000';
-            ctx.strokeText(text, x, top);
-          }
-          ctx.fillStyle = style.glowColor || '#00ffff';
-          ctx.fillText(text, x, top);
-          ctx.restore();
-        }
-      });
-
+    if (isWordByWord || isKaraoke || style.wordAnimation && style.wordAnimation!=='none'||line.words&&(['TFX-31','TFX-32','TFX-33','TFX-34'].includes(style.textFx?.preset)||reactiveFrame?.algorithm==='word-pulse')) {
+      drawTimedLyricWords(ctx,{line,lines,style,source:lyricClockTime(p,time),
+        rate:p.lyrics.timeBase==='project'?1:p.effects.speed,x,y,size,lineHeight,h,opacity,color:flashTextColor,totalGlow,time,backdrop:textBackdrop,reactiveFrame});
     } else {
       lines.forEach((text, i) => {
         const top = y + i * lineHeight;
         const outlineWidth = 2 * (style.outline ?? 2.5) * h / 720;
-        if (outlineWidth > 0.1) {
-          ctx.lineWidth = outlineWidth;
-          ctx.strokeStyle = style.outlineColor || '#000000';
-          ctx.strokeText(text, x, top);
+        const paint=(target,value,left,top)=>{if (outlineWidth > 0.1) {
+          target.lineWidth = outlineWidth;
+          target.strokeStyle = style.outlineColor || '#000000';
+          target.strokeText(value, left, top);
         }
-        ctx.fillStyle = flashTextColor;
-        ctx.fillText(text, x, top);
+        target.fillStyle = flashTextColor;target.fillText(value,left,top);};
+        const decorations=(target,value,left,y)=>{if(outlineWidth>.1){target.lineWidth=outlineWidth;target.strokeStyle=style.outlineColor||'#000000';target.strokeText(value,left,y);}};
+        if(style.textFx?.preset||reactiveFrame)paintTextFx(ctx,text,x,top,{settings:style.textFx,time,local:(lyricClockTime(p,time)-line.start)/(p.lyrics.timeBase==='project'?1:p.effects.speed),duration:(line.end-line.start)/(p.lyrics.timeBase==='project'?1:p.effects.speed),size,lineHeight,padding:outlineWidth,backdrop:textBackdrop,decorations,reactiveFrame,rowIndex:i},paint);
+        else paint(ctx,text,x,top);
       });
     }
 

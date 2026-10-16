@@ -10,9 +10,56 @@ The interface is in Turkish. Audio processing and transcription run on your mach
 
 - Multitrack audio with trim, looping, volume automation, fades, ducking, EQ, reverb, and speed controls.
 - Video and GIF backgrounds, multiple clips, transitions, image overlays, and audio-reactive effects.
+- Shared zoom/pan timeline, frame stepping and editable timecode, visual clip trims, split/duplicate/ripple commands, and a searchable media library.
+- Canvas selection, proportional resize/rotation handles, non-destructive source crop with aspect presets, mirroring, centering, and preview-only alignment/safe-area guides.
+- Project-time position, zoom, rotation and opacity keyframes, with draggable timeline diamonds, frame/second entry and matching preview/export interpolation.
+- Independent linear, ease-in/out, smooth, hold and Bézier intervals for audio automation and video keyframes; shared curve inspectors with numeric, keyboard and draggable Bézier controls.
+- Expandable audio automation canvas, freehand pencil, box/list multiselection, group movement and cross-track point copy/paste; independent level ranges and frame/beat/marker snapping.
+- Live volume automation recording with read/touch/latch modes, a precise recording fader, selectable punch range, live monitoring and one-step undo.
+- Independent volume, stereo pan, low-pass cutoff and layer reverb curves, with a parameter selector and synchronized overview lanes; per-layer effects also apply to exported audio.
+- Per-layer three-band parametric EQ with a draggable frequency-response graph, numeric frequency/gain/Q controls, feedback delay, reorderable EQ/filter/reverb/delay stages and individual bypass.
+- Project-wide BPM, tap tempo and local tempo suggestions, an adjustable first beat, bar/subdivision grid, clip and transition alignment, and shared automation beat snapping.
+- Nine visual transition presets including zoom and blur, directional wipe/slide/circle transitions, temporal softness, touch/keyboard overlap handles, and transition-region playback loops with matching MP4 output.
+- Independent clip color grades with exposure, white balance, tonal controls, editable master/R/G/B curves, reusable looks and color copy/paste; draggable before/after comparison with matching MP4 rendering.
+- Up to 16 independent video/GIF/image/text scene layers with timeline lanes, stack order, groups, locks, visibility and nine blend modes; precise canvas transforms, looping/source trims and portable media packages.
 - Lyrics editing, LRC/SRT import and export, manual timestamps, and local Whisper transcription.
 - Project packages (`.cozy`), browser draft recovery, undo/redo, short preview renders, and MP4 export.
 - Optional YouTube import, Giphy search, and LRCLIB lyrics search.
+
+Each audio inspector includes **Ses otomasyonu**. Choose volume, stereo pan,
+low-pass cutoff or layer reverb, then apply a preset or add points at the playhead.
+Drag points or enter their time and value directly. Expand **Tüm parametre şeritleri**
+to see all four curves together and switch parameters by clicking a lane.
+Curves follow project time independently of source trim and zoom, and combine
+with fades in both preview and export. A drag is one undo step. Removing the
+curve restores that parameter's static value; existing project curves remain compatible.
+Live recording currently writes the volume parameter. The new layer effects are
+separate from the existing main-song effect controls.
+
+Open **Katman efekt zinciri** in any audio inspector to shape that layer's sound.
+Select an EQ band and drag its handle, or enter frequency, gain and Q directly.
+Use the stage arrows to change the processing order and clear **Etkin** to bypass
+an effect while retaining its settings. Delay has independent time, feedback and
+amount controls. The chain is saved in projects/packages and applied to exported audio.
+
+Open **Ritim** in the timeline toolbar for BPM, first beat, beats per bar and
+subdivisions. Tap at least three times, then apply the result, or use **Tempo öner**
+to analyze up to 90 seconds of the main montage from the playhead locally.
+Suggestions need explicit application and may need a first-beat correction.
+Enable **Ritim çizgilerini göster** and **Ritme yapış** for the shared grid;
+automation's beat mode uses these same project settings. BPM does not change
+playback speed or automatically move existing edits.
+
+The timeline viewport also controls the automation editor. Video clips can be moved
+and trimmed directly, including intentional gaps. Auxiliary audio splits retain
+source phase, fade envelopes and automation. Main-song clips support split,
+move, trim, duplicate, copy/paste and ripple delete; source lyrics follow each
+edited occurrence. The composed main sequence provides the project clock and
+retains the speed/pitch controls and effect chain. Level controls support
+percent/dB; the video precision panel supports
+pixels, percentages and seconds/frames. See [editing controls](docs/EDITING.md)
+and the [completed 20-feature roadmap](docs/FEATURE_TODO.md) for usage and scope.
+The [next 30 features](docs/FEATURE_TODO_NEXT.md) cover new editing and production tools.
 
 ## Requirements
 
@@ -134,6 +181,8 @@ python -m pip_audit -r requirements.txt
 ```
 
 ## Project structure
+
+The 30 additional editing features (21–50) are implemented. See [feature checklist](docs/FEATURE_TODO_NEXT.md), [editing guide](docs/EDITING.md), and [validation results](docs/VALIDATION.md). Nested and linked sequence editing is in the main-source inspector; LUFS measurement, audition and export targets are in the Output inspector.
 
 - `app.py`, `package_api.py`, `sample_api.py`: HTTP endpoints and background jobs.
 - `settings.py`, `security.py`, `serve.py`: configuration, request boundaries, and production entry point.

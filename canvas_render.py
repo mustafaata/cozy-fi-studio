@@ -4,6 +4,7 @@ The private HTTP origin serves an explicit file allowlist, never user URLs or pa
 A bounded batch of lossless frames is streamed to FFmpeg; no frame files on disk.
 """
 from contextlib import contextmanager
+import hashlib
 import math
 import logging
 import os
@@ -11,8 +12,9 @@ from pathlib import Path
 import secrets
 import subprocess
 import threading
+import uuid
 
-from flask import Flask, abort, request, send_file
+from flask import Flask, abort, request, send_file, jsonify
 from werkzeug.serving import make_server, WSGIRequestHandler
 
 from media_assets import probe
@@ -20,7 +22,7 @@ from render_process import RenderCancelled, check_cancel, run_ffmpeg
 from video_render import output_size
 
 ROOT = Path(__file__).resolve().parent
-SCRIPTS = ("project", "visual-signal", "frame-renderer", "scene-renderer", "lyrics", "lyric-renderer", "export-scene")
+SCRIPTS = ("project", "audio-channels", "parameter-curves", "creative-video", "creative-temporal", "creative-shutter", "creative-motion-smear", "creative-motion-smear-renderer", "creative-time-slice", "creative-optics", "creative-optics-renderer", "creative-finish", "creative-video-renderer", "creative-geometry", "creative-geometry-shader", "creative-geometry-renderer", "text-fx", "text-kinetic", "text-kinetic-renderer", "text-finish", "text-contours", "text-contour-renderer", "text-materials", "text-material-renderer", "reactive-fx", "reactive-geometry", "reactive-geometry-renderer", "reactive-fields", "reactive-field-renderer", "reactive-finish", "reactive-renderer", "audio-fft", "spectral-audio", "motion-path", "video-keyframes", "visual-signal", "video-time", "video-time-sampler", "temporal-media", "frame-software", "frame-renderer", "clip-transitions", "clip-color", "chroma-key", "lut", "clip-color-renderer", "perspective", "perspective-renderer", "visual-mask", "mask-renderer", "visual-layers", "vector-shapes", "particles", "titles", "visual-layer-media", "scene-renderer", "lyrics", "lyric-word-renderer", "lyric-renderer", "export-scene")
 ENCODER_THREADS = max(1, min(8, os.cpu_count() or 1))
 
 
@@ -28,6 +30,10 @@ ENCODER_THREADS = max(1, min(8, os.cpu_count() or 1))
 def scene_origin(files, sink=None):
     token = secrets.token_hex(24)
     app = Flask(__name__, static_folder=None)
+    @app.get(f'/{token}/cancelled')
+    def cancelled():
+        return jsonify(cancelled=bool(sink and sink.cancel and sink.cancel.is_set()))
+
     if sink:
         app.config['MAX_CONTENT_LENGTH'] = sink.max_bytes
     schema = (ROOT / "static/project-schema.json").read_text(encoding="utf-8")
@@ -64,11 +70,21 @@ def scene_origin(files, sink=None):
         if not sink.lock.acquire(blocking=False):
             abort(409)
         try:
-            if request.headers.get('X-Frame-Index') != str(sink.received) or sink.process is None:
+            first = request.headers.get('X-Frame-Index')
+            if sink.process is None or first is None or first not in (str(sink.received), sink.last_first):
                 abort(409)
             data = request.get_data(cache=False)
+            digest = hashlib.sha256(data).digest()
             try:
+                check_cancel(sink.cancel)
+                # A lost HTTP response must not cause the same PNGs to be encoded twice.
+                # Retain only the most recent receipt, not the potentially large body.
+                if first == sink.last_first:
+                    if digest != sink.last_digest:
+                        abort(409)
+                    return '', 204
                 sink.write(data)
+                sink.last_first, sink.last_digest = first, digest
             except RenderCancelled:
                 abort(409)
             except ValueError:
@@ -107,6 +123,8 @@ class FrameSink:
         self.max_bytes = self.batch_size * (width * height * 6 + 1024)
         self.process = None
         self.received = 0
+        self.last_first = None
+        self.last_digest = None
         self.lock = threading.Lock()
 
     def write(self, data):
@@ -133,6 +151,7 @@ class FrameSink:
 
 
 def prepare_sources(project, clips, files, work, ffmpeg, report, cancel):
+    from project import validate_video_time_bounds
     sources, infos, urls = {}, [], []
     probes, prepared = {}, {}
     for index, source in enumerate(clips):
@@ -143,6 +162,7 @@ def prepare_sources(project, clips, files, work, ffmpeg, report, cancel):
         info = probes[source_key]
         output_size(info, project["output"])
         clip = project["videoClips"][index] if project["videoClips"] else project["video"]
+        validate_video_time_bounds(clip, info['duration'])
         stop = clip["end"] if clip["end"] is not None else info["duration"]
         if stop > info["duration"]+.001 or stop-clip["start"] < .05:
             raise ValueError("Video kesiti dosyanın dışında.")
@@ -171,13 +191,14 @@ def prepare_sources(project, clips, files, work, ffmpeg, report, cancel):
         urls.append(path.name); infos.append(info)
     audio = {}
     reactive = (project["video"]["vizType"] != "none" or project["video"]["bassEffects"] or
-                project["lyrics"]["bassEffects"] or project["lyrics"]["glowIntensity"] > 0)
+                project["lyrics"]["bassEffects"] or project["lyrics"]["glowIntensity"] > 0 or
+                any(layer['type'] == 'particles' and layer['particles']['reactivity'] > 0 for layer in project['visualLayers']))
     if reactive:
-        solo = any(track["source"] and track["solo"] for track in project["tracks"].values())
+        from project import track_audible
         for kind, track in project["tracks"].items():
-            if not track["source"] or track["muted"] or (solo and not track["solo"]):
+            if not track["source"] or not track_audible(project, kind):
                 continue
-            path = work / f"signal-{kind}.wav"
+            path = work / f"signal-{uuid.uuid4().hex}.wav"
             run_ffmpeg([ffmpeg, "-y", "-protocol_whitelist", "file,pipe", "-i", str(files[kind]),
                         "-vn", "-ar", "44100", "-c:a", "pcm_f32le", str(path)], cancel)
             sources[path.name] = path; audio[kind] = path.name
@@ -188,12 +209,22 @@ def prepare_sources(project, clips, files, work, ffmpeg, report, cancel):
 
 
 def render_canvas(project, clips, audio, destination, work_dir, ffmpeg, duration,
-                  report, cancel=None, sample_range=None, files=None):
+                  report, cancel=None, sample_range=None, files=None, dsp=None):
     from playwright.sync_api import sync_playwright
 
     files = files or {}
     work = Path(work_dir)
     sources, infos, urls, signals = prepare_sources(project, clips, files, work, ffmpeg, report, cancel)
+    from visual_assets import prepare_visual_sources
+    visual_sources, visual_records = prepare_visual_sources(project, files, work, ffmpeg, cancel)
+    sources.update(visual_sources)
+    reactive_analysis = None
+    if project['video']['reactiveFx']['preset'] and project['video']['reactiveFx']['enabled']:
+        from reactive_analysis import analyze_reactive_project
+        analysis_work = work / 'reactive-analysis'; analysis_work.mkdir(exist_ok=True)
+        if dsp is None:
+            raise ValueError('Audio reactive çıktı için ses işlemcisi bulunamadı.')
+        reactive_analysis = analyze_reactive_project(project, files, str(analysis_work), ffmpeg, dsp, cancel, master_audio=audio)
     start, end = sample_range or (0, duration)
     fps = int(project["output"]["fps"])
     count = math.ceil((end-start)*fps-1e-8)
@@ -201,12 +232,22 @@ def render_canvas(project, clips, audio, destination, work_dir, ffmpeg, duration
     sink = FrameSink(width, height, count, cancel)
     batch_size = sink.batch_size
     with scene_origin(sources, sink) as origin, sync_playwright() as runtime:
+        chromium_args = [
+            "--disable-gpu-watchdog",
+            "--disable-dev-shm-usage",
+            "--ignore-gpu-blocklist",
+            "--enable-gpu-rasterization",
+            "--enable-unsafe-swiftshader",
+            "--no-sandbox",
+        ]
         try:
-            # Chromium's new headless mode can use the machine's GPU. The default
-            # headless shell forces SwiftShader, making full-frame effects CPU-bound.
-            browser = runtime.chromium.launch(channel="chromium", args=["--enable-unsafe-swiftshader"])
-        except Exception as exc:
-            raise RuntimeError("Canvas motoru açılamadı. Kurulum: python -m playwright install chromium") from exc
+            # Prefer system/bundled Chromium with GPU acceleration and disabled watchdog
+            browser = runtime.chromium.launch(channel="chromium", args=chromium_args)
+        except Exception:
+            try:
+                browser = runtime.chromium.launch(args=chromium_args)
+            except Exception as exc:
+                raise RuntimeError("Canvas motoru açılamadı. Kurulum: python -m playwright install chromium") from exc
         try:
             context = browser.new_context()
             # Only the job's private origin can supply scene assets.
@@ -214,10 +255,12 @@ def render_canvas(project, clips, audio, destination, work_dir, ffmpeg, duration
             page = context.new_page()
             page.goto(origin)
             config = dict(project=project, infos=infos, videos=urls, audio=signals,
-                          metrics="metrics.json", overlay="overlay.png" if files.get("overlay") else None)
-            page.evaluate("async config => { window.scene=await createExportScene(config); }", config)
+                          metrics="metrics.json", overlay="overlay.png" if files.get("overlay") else None, visuals=visual_records, reactiveAnalysis=reactive_analysis)
+            page.evaluate("async config => { window.scene=await initializeExportScene(config); }", config)
             # The page's CSP keeps all runtime traffic local. Request interception
             # must stop here, otherwise CDP base64-copies every binary POST body.
+            # Network event listeners also serialize request bodies back to Python;
+            # keep diagnostics at the batch boundary instead of subscribing to them.
             context.unroute_all()
             check_cancel(cancel)
             command = [ffmpeg, "-y", "-nostdin", "-v", "error", "-f", "image2pipe", "-framerate", str(fps),
@@ -240,8 +283,15 @@ def render_canvas(project, clips, audio, destination, work_dir, ffmpeg, duration
                 try:
                     for frame in range(0, count, batch_size):
                         check_cancel(cancel)
-                        batch = page.evaluate("args => scene.frames(args)",
-                                              dict(start=start, first=frame, count=min(batch_size,count-frame), fps=fps))
+                        try:
+                            batch = page.evaluate("args => scene.frames(args)",
+                                                  dict(start=start, first=frame, count=min(batch_size,count-frame), fps=fps))
+                        except Exception:
+                            # Omit the private origin token and uploaded frame contents.
+                            logging.getLogger(__name__).warning(
+                                'Canvas batch failed (first=%d, accepted=%d, encoder_exit=%s)',
+                                frame, sink.received, process.poll())
+                            raise
                         for key in timings:
                             timings[key] += batch[key]
                         check_cancel(cancel)
@@ -257,6 +307,13 @@ def render_canvas(project, clips, audio, destination, work_dir, ffmpeg, duration
                                                     {k: round(v/1000, 3) for k, v in timings.items()})
                 except Exception:
                     check_cancel(cancel)
+                    if (work / "canvas-encode.log").is_file():
+                        try:
+                            log_text = (work / "canvas-encode.log").read_text(encoding="utf-8", errors="replace").strip()
+                            if log_text:
+                                logging.getLogger(__name__).warning("FFmpeg encoder log:\n%s", log_text)
+                        except Exception:
+                            pass
                     raise
                 finally:
                     done.set(); watcher.join(timeout=2)

@@ -28,6 +28,7 @@ class PackageTests(unittest.TestCase):
         self.project['tracks']['main'].update(start=.1,end=.9,source=dict(
             name='Şarkı.wav',size=self.song.stat().st_size,lastModified=123,duration=1))
         self.project['lyrics']['lines'] = [dict(id='one',text='Yağmur',start=.2,end=.7,confidence=None,review=False)]
+        self.project['rhythm'].update(bpm=127.5,offset=.17,beatsPerBar=7,division='3',visible=True,snap=True)
 
     def archive(self):
         result=io.BytesIO();build_package(result,self.project,{'media/main':self.song});result.seek(0);return result
@@ -42,6 +43,14 @@ class PackageTests(unittest.TestCase):
         result.seek(0);return result
 
     def test_round_trip_in_different_directory(self):
+        self.project['lyrics']['wordAnimation']='typewriter'
+        self.project['lyrics']['lines'][0]['words']=[dict(text='Yağmur',start=.25,end=.65)]
+        self.project['video']['mask'].update(enabled=True,shape='polygon',feather=2.5,
+            points=[[0,0],[100,25],[50,100]],keyframes=dict(x=[[0,20,dict(type='smooth')],[1,80]]))
+        self.project['video']['timeRemap'].update(reverse=True,smoothing='blend',ramp=[[0,.5,'smooth'],[1,2,'hold']])
+        chain = self.project['tracks']['main']['effectChain']
+        chain.update(order=['delay','reverb','filter','eq'], bypass=['filter'], delayTime=.073, delayFeedback=50, delayMix=40)
+        chain['eq'][1].update(frequency=1450, gain=4.5, q=2.2)
         destination=self.root/'other';destination.mkdir()
         project,files=unpack_package(self.archive(),destination)
         self.assertEqual(project,validate_project(self.project))
@@ -94,6 +103,24 @@ class PackageTests(unittest.TestCase):
         with patch.object(media_assets,'ASSET_DIR',cache_a):
             info=media_assets.prepare_asset(video,'video.mp4',engine._ffmpeg_bin())
             self.project['background'].update(asset=info['asset'],name='video.mp4')
+            from PIL import Image
+            from overlay_assets import prepare_overlay
+            image=io.BytesIO();Image.new('RGBA',(48,24),(210,80,40,128)).save(image,format='PNG')
+            png=prepare_overlay(image.getvalue(),'saydam.png')
+            self.project['visualGroups']=[dict(id='pair',name='Görseller',visible=True,locked=True)]
+            self.project['visualLayers']=[dict(id='video',type='video',asset=info['asset'],group='pair',
+                offset=.2,until=.8,start=.1,end=.9,speed=.75,phase=.1,width=37.5,rotation=12,blend='screen'),
+                dict(id='image',type='image',asset=png['asset'],group='pair',opacity=55,blend='multiply'),
+                dict(id='text',type='text',text='Taşınan metin',font='Arial',textColor='#aabbcc')]
+
+            self.project['video']['color']=dict(exposure=.5,curves=dict(red=[[0,.1],[1,.9]]))
+            self.project['videoClips']=[dict(id='one',asset=info['asset'],start=0,end=1,transition='blur',
+                transitionDuration=.25,transitionDirection='out',transitionSoftness=83.5,
+                color=dict(temperature=-30,shadows=12.5,curves=dict(rgb=[[0,0],[.45,.55],[1,1]])))]
+            self.project['videoClips'][0]['mask']=dict(enabled=True,shape='ellipse',mode='blur',blur=5,invert=True)
+            self.project['visualLayers'][0]['mask']=dict(enabled=True,shape='rectangle',feather=1,
+                keyframes=dict(x=[[0,25],[1,75]]))
+            self.project['visualLayers'][1]['mask']=dict(enabled=True,shape='polygon',points=[[0,0],[100,0],[0,100]])
             client=app.test_client()
             response=client.post('/api/project/package/export',data={'project':json.dumps(self.project),
                 'main':(io.BytesIO(self.song.read_bytes()),'Şarkı.wav')})
@@ -106,6 +133,10 @@ class PackageTests(unittest.TestCase):
             self.addCleanup(lambda:client.delete('/api/project/package/'+token))
             self.assertEqual(body['project'],validate_project(self.project))
             self.assertTrue(Path(media_assets.source_path(body['project']['background']['asset'])).is_file())
+            layers=body['project']['visualLayers']
+            self.assertEqual(client.get('/api/media/'+layers[0]['asset']).status_code,200)
+            image=client.get('/api/overlay/'+layers[1]['asset']);self.assertEqual(image.status_code,200)
+            self.assertEqual(Image.open(io.BytesIO(image.data)).getpixel((0,0))[3],128);image.close()
             audio=client.get(body['audio']['main']);self.assertEqual(audio.data,self.song.read_bytes());audio.close()
             self.assertEqual(client.get('/api/project/package/'+token+'/audio/unknown').status_code,404)
             self.assertEqual(client.delete('/api/project/package/'+token).status_code,204)

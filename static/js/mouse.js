@@ -1,4 +1,4 @@
-/* Shared pointer gestures. No application keyboard bindings. */
+/* Shared pointer gestures; keyboard handling here only cancels an active gesture. */
 function bindPointerHold(button,{start,repeat=()=>{},end=()=>{},delay=300,interval=90}) {
   let active=false,timer=null,pointer=null;
   const stop=event=>{if(!active || (event?.pointerId!==undefined && event.pointerId!==pointer))return;active=false;pointer=null;clearTimeout(timer);button.classList.remove('holding');end(event);};
@@ -8,6 +8,13 @@ function bindPointerHold(button,{start,repeat=()=>{},end=()=>{},delay=300,interv
     const tick=()=>{if(active){repeat();timer=setTimeout(tick,interval);}};timer=setTimeout(tick,delay);
   });
   for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,stop);
+  button.addEventListener('keydown',event=>{
+    if(!['Enter',' '].includes(event.key)||button.disabled)return;
+    event.preventDefault();if(event.repeat){if(active)repeat(event);return;}
+    if(active)return;active=true;pointer='keyboard';button.classList.add('holding');start(event);
+  });
+  button.addEventListener('keyup',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();stop(event);}});
+  button.addEventListener('click',event=>{if(event.detail===0&&!active&&!button.disabled){start(event);end(event);}});
   window.addEventListener('blur',stop);
   return ()=>stop({type:'pointercancel'});
 }
@@ -22,27 +29,50 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Drag numeric values horizontally/upwards; native spinner and text editing remain available.
   let drag=null;
   document.addEventListener('pointerdown',event=>{
-    const input=event.target;if(event.button!==0 || !input.matches('input[type="number"]') || input.disabled)return;
+    const input=event.target;if(drag || event.button!==0 || !input.matches?.('input[type="number"]') || input.disabled || input.readOnly)return;
+    // Native touch scrolling takes priority over implicit numeric scrubbing.
+    if(event.pointerType==='touch')return;
     const bounds=input.getBoundingClientRect();if(event.clientX>bounds.right-17)return;
-    drag={input,x:event.clientX,y:event.clientY,value:Number(input.value||0),moved:false};
+    drag={input,x:event.clientX,y:event.clientY,value:Number(input.value||input.dataset.scrubBase||0),original:input.value,moved:false,pointer:event.pointerId,
+      owner:input.closest('.sidebar-view')?.id,data:{...input.dataset},id:input.id};
   });
+  const currentInput=d=>{
+    if(d.input.isConnected!==false)return d.input;
+    if(d.id)return document.getElementById(d.id);
+    const root=d.owner?document.getElementById(d.owner):document;
+    const keys=Object.entries(d.data).filter(([key])=>!['scrubStep','scrubBase','scrubEvent','timeUnit','reset'].includes(key));
+    if(!keys.length)return null;
+    return [...root.querySelectorAll('input[type="number"]')].find(input=>keys.every(([key,value])=>input.dataset[key]===value));
+  };
   document.addEventListener('pointermove',event=>{
-    if(!drag)return;if(event.buttons===0){finish();return;}const delta=(event.clientX-drag.x)-(event.clientY-drag.y);
-    if(!drag.moved && Math.abs(delta)<4)return;
-    if(!drag.moved){projectStore.begin();drag.moved=true;document.body.classList.add('scrubbing');}
-    event.preventDefault();const input=drag.input,step=Number(input.max)>=60?Math.max(.05,Number(input.step)||.01):Number(input.step)||.01;
-    const min=input.min===''?-Infinity:Number(input.min),max=input.max===''?Infinity:Number(input.max);
-    const increment=Number(input.step)||.01,base=Number.isFinite(min)?min:0;
-    const raw=drag.value+Math.round(delta/3)*step;
-    input.value=Number(Math.max(min,Math.min(max,base+Math.round((raw-base)/increment)*increment)).toFixed(3));
-    input.dispatchEvent(new Event('change',{bubbles:true}));
+    if(!drag || event.pointerId!==drag.pointer)return;
+    if(event.buttons===0){finish();return;}
+    const delta=(event.clientX-drag.x)-(event.clientY-drag.y);
+    if(!drag.moved && Math.abs(delta)<CONTROL_INPUT.dragThreshold)return;
+    const input=currentInput(drag);if(!input || input.disabled || input.readOnly){finish(true);return;}
+    if(!drag.moved){if(projectStore.gesture)projectStore.commit();projectStore.begin();drag.moved=true;document.body.classList.add('scrubbing');document.body.setPointerCapture?.(event.pointerId);}
+    event.preventDefault();
+    const value=String(numericDragValue(input,drag.value,delta,event));
+    if(input.value!==value){input.value=value;dispatchNumericEdit(input);}
   });
-  const finish=()=>{if(drag?.moved)projectStore.commit();drag=null;document.body.classList.remove('scrubbing');};
-  document.addEventListener('pointerup',finish);document.addEventListener('pointercancel',finish);window.addEventListener('blur',finish);
-  document.addEventListener('project-opened',finish);
+  const finish=(cancel=false)=>{
+    const d=drag;if(!d)return;drag=null;document.body.classList.remove('scrubbing');
+    if(d.moved){
+      if(cancel){const input=currentInput(d);if(input&&!input.readOnly&&!input.disabled){input.value=d.original;dispatchNumericEdit(input);}projectStore.cancelGesture();}
+      else projectStore.commit();
+    }
+    if(document.body.hasPointerCapture?.(d.pointer))document.body.releasePointerCapture(d.pointer);
+  };
+  document.addEventListener('pointerup',event=>{if(drag&&event.pointerId===drag.pointer)finish();});
+  document.addEventListener('pointercancel',event=>{if(drag&&event.pointerId===drag.pointer)finish(true);});
+  document.addEventListener('lostpointercapture',event=>{if(drag&&event.pointerId===drag.pointer)finish(true);});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&drag?.moved){event.preventDefault();event.stopImmediatePropagation();finish(true);}},true);
+  window.addEventListener('blur',()=>finish(true));
+  projectStore.addEventListener('snapshot',()=>finish());
+  document.addEventListener('project-will-open',()=>finish(true));
   document.addEventListener('dblclick',event=>{
-    const input=event.target;if(!input.matches('input[data-reset]') || input.disabled)return;
-    input.value=input.dataset.reset;input.dispatchEvent(new Event(input.type==='range'?'input':'change',{bubbles:true}));projectStore.commit();
+    const input=event.target;if(!input.matches('input[data-reset]') || input.disabled || input.readOnly)return;
+    input.value=input.dataset.reset;if(input.type==='range')input.dispatchEvent(new Event('input',{bubbles:true}));else dispatchNumericEdit(input);projectStore.commit();
   });
   // Drag the image, or the lyric layer while its inspector is open.
   const stage=el('canvasStage');let frameDrag=null;
@@ -52,15 +82,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(event.target.closest('#previewEmpty') || event.target.closest('button, label, input, a, select')) return;
     const lyrics=el('inspector-lyrics') ? el('inspector-lyrics').classList.contains('active-view') : (!el('lyricsPanel')?.classList.contains('hidden'));
     const p=projectStore.state;
+    if(!lyrics&&window.videoTransformEditor)return;
     if(!lyrics && !p.background.asset)return;
     if(!lyrics && (!videoPreview?.ready || !videoPreview.info))return;
     stage.setPointerCapture(event.pointerId);const canvas=el('previewCanvas'),box=canvas.getBoundingClientRect();
     const scale=Math.min(box.width/canvas.width,box.height/canvas.height),bounds={width:canvas.width*scale,height:canvas.height*scale};
     const rect=lyrics?null:videoRect(videoPreview.info,{width:canvas.width,height:canvas.height},p.video);
-    frameDrag={x:event.clientX,y:event.clientY,bounds,scale,rect,width:canvas.width,height:canvas.height,lyrics,initial:lyrics?{...p.lyrics}:{...p.video},moved:false};
+    frameDrag={pointer:event.pointerId,x:event.clientX,y:event.clientY,bounds,scale,rect,width:canvas.width,height:canvas.height,lyrics,initial:lyrics?{...p.lyrics}:{...p.video},moved:false};
   });
   stage.addEventListener('pointermove',event=>{
-    if(!frameDrag)return;const d=frameDrag,dx=event.clientX-d.x,dy=event.clientY-d.y;
+    if(!frameDrag||event.pointerId!==frameDrag.pointer)return;const d=frameDrag,dx=event.clientX-d.x,dy=event.clientY-d.y;
     if(!d.moved && Math.hypot(dx,dy)<4)return;
     if(!d.moved){d.moved=true;projectStore.begin();}event.preventDefault();
     projectStore.update(p=>{
@@ -72,9 +103,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
     });
   });
-  const release=()=>{if(frameDrag?.moved)projectStore.commit();frameDrag=null;};
+  const release=event=>{if(!frameDrag||event?.pointerId!==undefined&&event.pointerId!==frameDrag.pointer)return;if(frameDrag.moved){if(event?.type==='pointerup')projectStore.commit();else projectStore.cancelGesture();}frameDrag=null;};
   for(const name of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(name,release);
+  window.addEventListener('blur',release);
+  document.addEventListener('project-will-open',release);
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&frameDrag){event.preventDefault();release(event);}});
   stage.addEventListener('dblclick',()=>projectStore.update(p=>{
+    if(!el('inspector-lyrics')?.classList.contains('active-view')&&window.videoTransformEditor)return;
     if(!el('lyricsPanel').classList.contains('hidden')){p.lyrics.x=PROJECT_SCHEMA.lyrics.x.default;p.lyrics.y=PROJECT_SCHEMA.lyrics.y.default;}
     else {p.video.positionX=0;p.video.positionY=0;p.video.zoom=1;}
   }));

@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),asse
 const root=path.resolve(__dirname,'..'),schema=fs.readFileSync(path.join(root,'static/project-schema.json'),'utf8');
 const context=vm.createContext({window:{},document:{getElementById:()=>({textContent:schema})},
   crypto:require('node:crypto').webcrypto,Event,EventTarget});
-for(const file of ['project','lyrics','visual-signal','lyric-renderer']) {
+for(const file of ['project','parameter-curves','text-materials','lyrics','audio-fft','visual-signal','lyric-word-renderer','lyric-renderer']) {
   vm.runInContext(fs.readFileSync(path.join(root,`static/js/${file}.js`),'utf8'),context);
 }
 const api=vm.runInContext('({VisualSignal,projectStore,lyricAnimationFrames,lyricColorMix,drawLyricLayer})',context);

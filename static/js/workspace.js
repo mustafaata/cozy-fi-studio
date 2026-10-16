@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const badge = el(`${kind}-durBadge`);
     if (!badge) return;
     const track = projectStore.state?.tracks?.[kind];
-    const dur = track ? (track.end !== null ? track.end - track.start : (track.source?.duration ? track.source.duration - track.start : null)) : null;
+    const dur = kind==='main'&&projectStore.state.mainClips?projectDuration(projectStore.state):track ? (track.end !== null ? track.end - track.start : (track.source?.duration ? track.source.duration - track.start : null)) : null;
     badge.textContent = dur !== null && dur > 0 ? `${dur.toFixed(2)} sn` : 'Tamamı';
   }
 
@@ -70,11 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
       audioEngine.clearSelection(kind);
     });
     trimCard.querySelector('.play-region-btn').addEventListener('click', () => {
-      audioEngine.seekTo(projectStore.state.tracks.main.start);
+      audioEngine.seekProjectTime(0);
       audioEngine.play();
     });
     const refreshTrim = () => {
-      const available = !!audioEngine.files[kind];
+      const available = !!audioEngine.files[kind] && !(kind==='main'&&projectStore.state.mainClips);
       trimCard.querySelectorAll('button').forEach(button => { button.disabled = !available; });
       updateTrimBadge(kind);
     };
@@ -93,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
       select(kind);
       if(event.detail===0) return;
       const bounds=lane.getBoundingClientRect();
-      const time=Math.max(0,Math.min(1,(event.clientX-bounds.left)/Math.max(1,bounds.width)))*projectDuration(projectStore.state);
-      audioEngine.seekTo(projectStore.state.tracks.main.start+time*projectStore.state.effects.speed);
+      const time=window.timelineView.time((event.clientX-bounds.left)/Math.max(1,bounds.width));
+      audioEngine.seekProjectTime(time);
       updateClock();
     });
   }
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('[data-inspect]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.inspect===kind)));
     document.querySelectorAll('[data-track]').forEach(row=>row.classList.toggle('selected',row.dataset.track===kind));
-    const modeForKind = { main:'mix', rain:'mix', fire:'mix', lyrics:'lyrics', video:'videofx', videofx:'videofx', output:'output' };
+    const modeForKind = { main:'mix', rain:'mix', fire:'mix', lyrics:'lyrics', video:'video', videofx:'videofx', output:'output' };
     const currentMode = modeForKind[kind] || 'mix';
     document.querySelectorAll('.mode-tab').forEach(tab => {
       const active = tab.dataset.mode === currentMode;
@@ -163,11 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
       tab.setAttribute('aria-pressed', String(active));
     });
     if (changed) sidebarContent.scrollTop = scrollPositions.get(kind) || 0;
+    document.dispatchEvent(new CustomEvent('inspector-selection-changed',{detail:{kind}}));
   }
   window.selectSidebarTab = select;
   document.querySelectorAll('.mode-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      const targetMap = { mix: 'main', lyrics: 'lyrics', videofx: 'videofx', output: 'output' };
+      const targetMap = { mix: 'main', lyrics: 'lyrics', video:'video', videofx: 'videofx', output: 'output' };
       select(targetMap[tab.dataset.mode] || 'main');
     });
   });
@@ -180,20 +181,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const seek=el('projectSeek');
   seek.addEventListener('input',()=>{
     const p=projectStore.state;
-    audioEngine.seekTo(p.tracks.main.start+Number(seek.value)*p.effects.speed);
+    audioEngine.seekProjectTime(Number(seek.value));
     updateClock();
   });
   function updateClock() {
     const duration=projectDuration(projectStore.state), time=audioEngine.getProjectTime();
-    seek.max=duration;seek.value=time;seek.disabled=!audioEngine.files.main;
+    seek.min=window.timelineView.start;
+    seek.max=Math.min(duration,window.timelineView.start+window.timelineView.span);
+    seek.value=clamp(time,Number(seek.min),Number(seek.max));seek.disabled=!audioEngine.files.main;
     const allHeads = Object.values(heads).concat(window.heads ? Object.values(window.heads) : []);
-    for(const head of allHeads) head.style.left=(duration?Math.min(100,time/duration*100):0)+'%';
+    for(const head of allHeads) {
+      const fraction=window.timelineView.fraction(time);
+      head.style.left=(fraction*100)+'%';head.hidden=fraction<0||fraction>1;
+    }
   }
   function drawLanes() {
     drawing=false;
     const p=projectStore.state, duration=projectDuration(p);
     el('timelineRuler').replaceChildren(...Array.from({length:5},(_,i)=>{
-      const span=document.createElement('span');span.textContent=format(duration*i/4);return span;
+      const span=document.createElement('span');span.textContent=window.timelineView.time(i/4).toFixed(2)+' sn';return span;
     }));
     for (const kind of Object.keys(p.tracks)) {
       const source = p.tracks[kind].source;
@@ -204,21 +210,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const width = Math.max(1, canvas.clientWidth), height = 48;
       canvas.width=width;canvas.height=height;
       const ctx=canvas.getContext('2d');ctx.clearRect(0,0,width,height);
-      const buffer=audioEngine.files[kind]&&audioEngine.ws(kind).getDecodedData();
+      const buffer=audioEngine.files[kind]&&audioEngine.sourceBuffer(kind);
       if(!buffer || !duration) continue;
       const data=buffer.getChannelData(0);
       const colors = getComputedStyle(canvas);
       const token = trackAudible(p,kind) ? {main:'--lamp',rain:'--neon-cyan',fire:'--neon-pink'}[kind] || '--muted' : '--faint';
       ctx.fillStyle = colors.getPropertyValue(token).trim();
       for(let x=0;x<width;x+=2) {
-        const t=duration*x/width, timing=trackTiming(p,kind,t);
+        const t=window.timelineView.time(x/width), timing=trackTiming(p,kind,t);
         if(!timing.active)continue;
         let peak=0;
-        const count=Math.max(1,Math.floor(duration/width*timing.rate*buffer.sampleRate));
+        const count=Math.max(1,Math.floor(window.timelineView.span/width*timing.rate*buffer.sampleRate));
         const start=Math.floor(timing.position*buffer.sampleRate);
         for(let j=0;j<16;j++) peak=Math.max(peak,Math.abs(data[Math.min(data.length-1,start+Math.floor(count*j/16))] || 0));
         const h=Math.max(2,Math.min(44,peak*42)*timing.envelope);
         ctx.fillRect(x,(height-h)/2,1,h);
+      }
+      if(window.timelineView.showAutomation) {
+        ctx.strokeStyle=colors.getPropertyValue('--success').trim();ctx.lineWidth=2;ctx.beginPath();
+        for(let x=0;x<=width;x+=2) {
+          const time=window.timelineView.time(x/width),value=automationValue(p.tracks[kind].automation.volume,time,p.tracks[kind].volume);
+          const y=height-(value/200)*height;
+          if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
       }
     }
     updateClock();
@@ -226,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function invalidate() { if(!drawing){drawing=true;requestAnimationFrame(drawLanes);} }
   window.invalidateWorkspace = invalidate;
   projectStore.addEventListener('change',invalidate);
+  window.timelineView.addEventListener('change',invalidate);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', invalidate);
   document.addEventListener('project-time',updateClock);
   for(const event of ['seeking','pause']) audioEngine.wsMain.on(event,updateClock);

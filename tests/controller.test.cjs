@@ -24,7 +24,7 @@ module.exports = (async () => {
   elements.get('projectSchema').textContent=schema;
   const document={getElementById:id=>elements.get(id),querySelectorAll:()=>[],
     querySelector:selector=>selector.startsWith('#') ? elements.get(selector.slice(1)) : null,
-    addEventListener(type,fn){if(type==='DOMContentLoaded')this.ready=fn;}};
+    addEventListener(type,fn){if(type==='DOMContentLoaded')this.ready=fn;},dispatchEvent(){}};
   const wave={on(){},getDuration(){return 10;},getCurrentTime(){return 0;},isPlaying(){return false;}};
   const regions={on(){}};
   const requests=[], replies=[], timers=[];
@@ -34,7 +34,7 @@ module.exports = (async () => {
     getMainRegion(){return null;},hasAudio(){return true;},getProjectTime(){return 0;},stopAll(){},
     loadAudio(){return new Promise(resolve=>{finishDecode=resolve;});},
     setVolume(kind,volume){store.update(p=>{p.tracks[kind].volume=Number(volume);});}};
-  const context=vm.createContext({document,audioEngine:engine,videoPreview:{ready:true,busy:false},Event,EventTarget,console,
+  const context=vm.createContext({document,audioEngine:engine,videoPreview:{ready:true,busy:false,visuals:{isReady:()=>true}},Event,EventTarget,console,
     window:{addEventListener(){},location:{set href(value){navigation++;}},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}},
     File:class {constructor(parts,name){this.name=name;}},DataTransfer:class {files=[];items={add:file=>this.files.push(file)};},
     FormData:class extends Map {append(key,value){this.set(key,value);}},

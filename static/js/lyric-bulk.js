@@ -13,13 +13,13 @@ function editLyricBatch(project, ids, operation) {
     for(const row of rows)if(chosen.has(row.id)) {
       const transform=time=>round(operation.type==='shift'?time+value:anchor+(time-anchor)*value);
       const start=transform(row.start),end=transform(row.end);
-      if(start!==row.start||end!==row.end){row.start=start;row.end=end;mark(row);}
+      if(start!==row.start||end!==row.end){const previous={...row};row.start=start;row.end=end;retimeLyricWords(row,previous);mark(row);}
     }
   } else if(operation.type==='replace') {
     if(typeof operation.find!=='string'||!operation.find.length||typeof operation.replacement!=='string')throw new Error('Aranacak metin gerekli.');
     for(const row of rows)if(chosen.has(row.id)) {
       const text=row.text.split(operation.find).join(operation.replacement);
-      if(text!==row.text){row.text=text;row.confidence=null;mark(row);}
+      if(text!==row.text){row.text=text;retimeLyricWords(row,row);row.confidence=null;mark(row);}
     }
   } else if(operation.type==='merge') {
     if(selected.length<2)throw new Error('Birleştirmek için en az iki satır seç.');
@@ -29,6 +29,8 @@ function editLyricBatch(project, ids, operation) {
     row.text=selected.map(r=>r.text).join('\n');row.confidence=null;
     row.start=allTimed?Math.min(...selected.map(r=>r.start)):null;
     row.end=allTimed?Math.max(...selected.map(r=>r.end)):null;mark(row);
+    if(allTimed&&selected.some(r=>r.words))row.words=selected.flatMap(lyricWordTimings);
+    else delete row.words;
     rows=rows.filter(r=>!chosen.has(r.id)||r.id===row.id);
   } else if(operation.type==='split') {
     if(selected.length!==1)throw new Error('Bölmek için tek satır seç.');
@@ -36,11 +38,20 @@ function editLyricBatch(project, ids, operation) {
     if(!Number.isInteger(at)||at<=0||at>=row.text.length||!row.text.slice(0,at).trim()||!row.text.slice(at).trim())throw new Error('Metnin içinde bölme noktası seç.');
     if(/[\uD800-\uDBFF]/.test(row.text[at-1])&&/[\uDC00-\uDFFF]/.test(row.text[at]))throw new Error('Bölme noktası karakterin içinde olamaz.');
     const next={...row,id:lyricId(),text:row.text.slice(at).trim(),confidence:null};
+    const words=row.words;
     if(row.start!==null){const boundary=round(row.start+(row.end-row.start)*at/row.text.length);row.end=boundary;next.start=boundary;}
     row.text=row.text.slice(0,at).trim();row.confidence=null;mark(row);mark(next);rows.splice(index+1,0,next);
+    delete row.words;delete next.words;
+    if(words&&/\s/.test(selected[0].text[at-1]+selected[0].text[at])) {
+      const count=lyricTextWords(row.text).length,left=words.slice(0,count),right=words.slice(count);
+      const boundary=right[0]?.start;
+      if(left.length&&right.length&&left.at(-1).end<=boundary&&boundary>row.start&&boundary<next.end) {
+        row.end=next.start=boundary;row.words=left;next.words=right;
+      }
+    }
   } else throw new Error('Bilinmeyen söz işlemi.');
   if(!changed.size)return original;
-  const result=validateLyricLines(rows),duration=project.tracks.main.source?.duration,offset=project.lyrics.offset;
+  const result=validateLyricLines(rows),duration=project.lyrics.timeBase==='project'?projectDuration(project):project.tracks.main.source?.duration,offset=project.lyrics.offset;
   for(const row of result)if(changed.has(row.id)&&row.start!==null) {
     if(row.start+offset<0||(duration&&row.end+offset>duration+1e-7))throw new Error('İşlem şarkının zaman sınırını aşıyor.');
   }

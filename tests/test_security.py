@@ -22,6 +22,7 @@ class SecurityTests(unittest.TestCase):
         self.assertIn("script-src 'self'", response.headers['Content-Security-Policy'])
         self.assertNotIn('unsafe-eval', response.headers['Content-Security-Policy'])
         self.assertEqual(response.headers['X-Content-Type-Options'], 'nosniff')
+        self.assertEqual(response.headers['Permissions-Policy'], 'camera=(), microphone=(self), geolocation=()')
         with patch.object(app, 'GIPHY_API_KEY', ''):
             response = self.client.get('/api/gifs')
             self.assertEqual(response.status_code, 503)

@@ -12,7 +12,7 @@ module.exports=(async()=>{
   };
   const store=new EventTarget();store.state={tracks:{main:{source:{name:'a.wav'},start:1},rain:{source:null},fire:{source:null}},effects:{speed:.5},background:{asset:'asset'}};
   let playing=false,time=3,seek;
-  const audio={files:{main:{}},wsMain:{isPlaying:()=>playing,on(){}},getProjectTime:()=>time,pause(){playing=false;},play(){playing=true;return Promise.resolve();},seekTo(t){seek=t;}};
+  const audio={files:{main:{}},wsMain:{isPlaying:()=>playing,on(){}},getProjectTime:()=>time,pause(){playing=false;},play(){playing=true;return Promise.resolve();},seekProjectTime(t){seek=store.state.tracks.main.start+t*store.state.effects.speed;}};
   const transport={inert:false};
   const context=vm.createContext({Event,projectStore:store,audioEngine:audio,TRACK_IDS:['main','rain','fire'],projectDuration:()=>20,
     document:{createElement:()=>el("dummy"),getElementById:el,querySelector:()=>transport,addEventListener(){}},window:{addEventListener(){}},

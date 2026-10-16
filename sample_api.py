@@ -12,13 +12,15 @@ import uuid
 from flask import Blueprint, jsonify, request, send_file
 import engine
 import media_assets
-from project import TRACK_IDS, validate_project
+from project import TRACK_IDS, validate_project, project_duration
+from worker_lifecycle import start_worker
+from temporary_media import TemporaryMedia
 
 
 def sample_bounds(project, start, length):
     track=project['tracks']['main']
     if not track['source']: raise ValueError('Ana şarkı gerekli.')
-    duration=((track['end'] if track['end'] is not None else track['source']['duration'])-track['start'])/project['effects']['speed']
+    duration=project_duration(project)
     if not all(math.isfinite(v) for v in (start,length)) or not 5 <= length <= 15 or start < 0:
         raise ValueError('Örnek süresi 5–15 saniye olmalı.')
     fps=int(project['output']['fps'])
@@ -37,7 +39,7 @@ def create_sample_api(render_slot):
                 jobs.pop(token);job['temp'].cleanup();return
         timer=threading.Timer(1800,expire,(token,));timer.daemon=True;timer.start()
     def public(job):
-        return {k:v for k,v in job.items() if k not in ('temp','cancel','access')}
+        return {k:v for k,v in job.items() if k not in ('temp','cancel','access','discard')}
 
     @api.post('/api/preview-samples')
     def create():
@@ -48,6 +50,7 @@ def create_sample_api(render_slot):
             clip_paths=[media_assets.source_path(clip['asset']) for clip in project['videoClips']]
             from overlay_assets import overlay_path
             overlay=overlay_path(project['overlay']['asset']) if project['overlay']['asset'] else None
+            if project['overlay']['url'] and not overlay:raise ValueError('Ön plan görselini projeye yükleyin.')
             for kind in project["tracks"]:
                 if project['tracks'][kind]['source'] and not request.files.get(kind):
                     raise ValueError('Bütün ses kaynaklarını yeniden bağlayın.')
@@ -57,12 +60,12 @@ def create_sample_api(render_slot):
         if not render_slot.acquire(blocking=False):return jsonify(message='Bir video veya örnek işleniyor.'),429
         temp=None
         try:
-            temp=tempfile.TemporaryDirectory(prefix='cozy_sample_',ignore_cleanup_errors=True)
+            temp=TemporaryMedia(prefix='cozy_sample_')
             folder=Path(temp.name);work=folder/'work';work.mkdir()
             files={'background':source,'clip_paths':clip_paths,'overlay':overlay}
             for kind in project["tracks"]:
                 if project['tracks'][kind]['source']:
-                    path=work/(kind+'.audio');request.files[kind].save(path)
+                    path=work/(uuid.uuid4().hex+'.audio');request.files[kind].save(path)
                     if path.stat().st_size != project['tracks'][kind]['source']['size']:raise ValueError('Kaynak boyutu eşleşmiyor.')
                     files[kind]=str(path)
             token=uuid.uuid4().hex;cancel=threading.Event()
@@ -84,8 +87,16 @@ def create_sample_api(render_slot):
                 with lock:jobs[token].update(state='error',message=public_error(exc))
             finally:
                 shutil.rmtree(work,ignore_errors=True);render_slot.release()
-                timer=threading.Timer(1800,expire,(token,));timer.daemon=True;timer.start()
-        threading.Thread(target=worker,daemon=True).start()
+                with lock:
+                    discarded=jobs[token].get('discard',False)
+                    if discarded:jobs.pop(token)
+                if discarded:temp.cleanup()
+                else:
+                    timer=threading.Timer(1800,expire,(token,));timer.daemon=True;timer.start()
+        def rollback():
+            with lock:jobs.pop(token,None)
+            temp.cleanup()
+        start_worker(worker,render_slot,rollback)
         return jsonify(job_id=token),202
 
     @api.get('/api/preview-samples/<token>')
@@ -109,7 +120,7 @@ def create_sample_api(render_slot):
             job=jobs.get(token)
             if not job or job['state']!='done':return jsonify(message='Örnek hazır değil.'),404
             job['access']=time.monotonic()
-            return send_file(Path(job['temp'].name)/'sample.mp4',mimetype='video/mp4',conditional=True)
+            return job['temp'].send(Path(job['temp'].name)/'sample.mp4',mimetype='video/mp4',conditional=True)
 
     @api.delete('/api/preview-samples/<token>')
     def remove(token):
@@ -117,7 +128,7 @@ def create_sample_api(render_slot):
             job=jobs.get(token)
             if not job:return '',204
             if job['state'] in ('running','cancelling'):
-                job['cancel'].set();job['state']='cancelling';return jsonify(message='İptal ediliyor'),202
+                job['cancel'].set();job['state']='cancelling';job['discard']=True;return jsonify(message='İptal ediliyor'),202
             jobs.pop(token);job['temp'].cleanup()
         return '',204
     return api

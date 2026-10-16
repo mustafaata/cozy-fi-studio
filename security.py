@@ -15,7 +15,12 @@ logger = logging.getLogger(__name__)
 
 def public_error(error):
     """Keep dependency errors (often containing URLs or local paths) private."""
+    # Dependency exception messages and tracebacks can contain credentials and URLs.
     logger.warning("Operation failed (%s)", type(error).__name__)
+    msg = str(error).strip()
+    if isinstance(error, (ValueError, FileNotFoundError)) and msg:
+        if not any(token in msg for token in ("://", "\\", "/", "Traceback", "Errno ", "object at 0x")):
+            return msg
     return "İşlem tamamlanamadı. Kaynağı ve ayarları kontrol edip yeniden deneyin."
 
 
@@ -46,7 +51,7 @@ def install_security(app):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "

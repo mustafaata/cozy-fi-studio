@@ -1,8 +1,15 @@
+function changeSelectedVideoSource(values) {
+  audioEngine.pause();
+  const editor=window.videoClipEditor,infos=editor?.infos??new Map(videoPreview.clips.entries.map(entry=>[entry.info.asset,entry.info]));
+  return window.change(p=>editVideoSourceValues(p,infos,editor?.selected,values));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const controls = [];
+  let settingsKey=null;
   const change = edit => {
     try { projectStore.update(edit); }
-    catch (error) { document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message})); refresh(); }
+    catch (error) { document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message})); refresh(false,true); }
   };
   function group(parent, title) {
     const fieldset=document.createElement('fieldset'); fieldset.className='video-group';
@@ -12,17 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function field(parent, section, key, label, options=null, step=.01, slider=false) {
     const spec=PROJECT_SCHEMA[section][key];
-    const row=document.createElement('label'); row.className=spec.type==='boolean'?'check-row':slider?'video-adjust':'edit-field';
-    const name=document.createElement('span'); name.textContent=label;
+    const animated=section==='video'&&PROJECT_SCHEMA.videoKeyframeFields.includes(key);
+    const row=document.createElement(animated?'div':'label'); row.className=spec.type==='boolean'?'check-row':slider?'video-adjust':'edit-field';
+    const name=document.createElement(animated?'label':'span'); name.textContent=label;
+    if(animated){name.htmlFor=`${section}-${key}`;name.className='video-field-caption';row.classList.add('has-keyframe');}
     const input=document.createElement(options?'select':'input'); input.id=`${section}-${key}`;
     input.setAttribute('aria-label',label);
+    if(section==='video'&&['start','end','fadeIn','fadeOut'].includes(key))input.dataset.timeUnit='';
     if(options) for(const [value,text] of options) {const o=document.createElement('option');o.value=value;o.textContent=text;input.append(o);}
     else if(spec.type==='boolean') input.type='checkbox';
     else {input.type='number';input.min=spec.min;input.max=spec.max;input.step=step;if(spec.nullable)input.placeholder='Son';}
     const update=() => {
-      if(spec.type==='number' && ((!spec.nullable && input.value==='') || !input.validity.valid)) {refresh();return;}
+      if(spec.type==='number' && ((!spec.nullable && input.value==='') || !input.validity.valid)) {refresh(false,true);return;}
       const value=spec.type==='boolean'?input.checked:spec.type==='number'?(input.value===''?null:Number(input.value)):input.value;
-      change(p=>{p[section][key]=value;});
+      if(section==='video'&&['start','end','speed'].includes(key)){changeSelectedVideoSource({[key]:value});refresh(false,true);return;}
+      if(animated){changeVideoAtPlayhead({[key]:value});return;}
+      change(p=>{if(section==='video')editVideoValues(p,{[key]:value},audioEngine.getProjectTime());else p[section][key]=value;});
     };
     input.addEventListener('change',update);
     row.append(name);
@@ -37,19 +49,31 @@ document.addEventListener('DOMContentLoaded', () => {
     row.append(input);parent.append(row); controls.push({input,range,section,key});
   }
   const video=document.getElementById('videoControls');
-  const timing=group(video,'Zaman');
-  field(timing,'video','start','Giriş · sn',null,.01);
-  field(timing,'video','end','Çıkış · sn',null,.01);
-  field(timing,'video','speed','Hız · ×',null,.01,true);
-  field(timing,'video','linkSpeed','Şarkı hızına bağla');
-  field(timing,'video','loop','Döngü');
-  field(timing,'video','fadeIn','Fade in · sn',null,.05);
-  field(timing,'video','fadeOut','Fade out · sn',null,.05);
-  const frame=group(video,'Kadraj');
+  const scope=document.createElement('p');scope.className='video-source-scope';scope.setAttribute('role','status');video.append(scope);
+  const timing=group(video,'Seçili kaynak · zaman');
+  field(timing,'video','start','Kaynak girişi · sn',null,.01);
+  field(timing,'video','end','Kaynak çıkışı · sn',null,.01);
+  field(timing,'video','speed','Kaynak hızı · ×',null,.01,true);
+  const playback=group(video,'Proje · oynatma');
+  field(playback,'video','linkSpeed','Şarkı hızına bağla');
+  field(playback,'video','loop','Döngü');
+  field(playback,'video','fadeIn','Fade in · sn',null,.05);
+  field(playback,'video','fadeOut','Fade out · sn',null,.05);
+  const frame=group(video,'Proje · bütün kliplerin kadrajı');
   field(frame,'video','fit','Yerleşim',[['cover','Doldur'],['contain','Sığdır']]);
   field(frame,'video','zoom','Yakınlık · ×',null,.01,true);
   field(frame,'video','positionX','Yatay',null,.01,true);
   field(frame,'video','positionY','Dikey',null,.01,true);
+  field(frame,'video','translateX','Tuval yatay · %',null,.1,true);
+  field(frame,'video','translateY','Tuval dikey · %',null,.1,true);
+  field(frame,'video','rotation','Dönüş · °',null,.1,true);
+  field(frame,'video','opacity','Opaklık · %',null,.1,true);
+  field(frame,'video','mirrorX','Yatay aynala');
+  field(frame,'video','mirrorY','Dikey aynala');
+  const resetFrame=document.createElement('button');resetFrame.type='button';resetFrame.className='ghost';resetFrame.textContent='Kadrajı sıfırla';
+  resetFrame.addEventListener('click',()=>changeVideoAtPlayhead(Object.fromEntries(['fit','zoom','positionX','positionY','translateX','translateY','rotation','mirrorX','mirrorY','cropLeft','cropTop','cropRight','cropBottom'].map(key=>[key,PROJECT_SCHEMA.video[key].default]))));frame.append(resetFrame);
+  const crop=group(video,'Kaynak kırpma');
+  for(const [key,label] of [['cropLeft','Sol · %'],['cropTop','Üst · %'],['cropRight','Sağ · %'],['cropBottom','Alt · %']])field(crop,'video',key,label,null,.1);
   const color=group(video,'Renk');
   for(const [key,label] of [['brightness','Parlaklık'],['contrast','Kontrast'],['saturation','Doygunluk'],['gamma','Gamma']]) field(color,'video',key,label,null,.01,true);
   const reset=document.createElement('button');reset.type='button';reset.className='ghost reset-video';reset.textContent='Rengi sıfırla';
@@ -60,26 +84,39 @@ document.addEventListener('DOMContentLoaded', () => {
   field(output,'output','aspect','Oran',[['source','Kaynak'],['16:9','16:9'],['9:16','9:16'],['1:1','1:1']]);
   field(output,'output','interpolation','Ara kare',[['standard','Standart'],['motion','Hareket']]);
   const audioOutput=group(document.getElementById('masterControls'),'Ses Kalitesi');
-  field(audioOutput,'master','loudnorm','LUFS Normalizasyonu (YouTube/Spotify uyumlu)');
-  function refresh() {
+  field(audioOutput,'master','loudnorm','Çıktıda LUFS normalizasyonu');
+  function refresh(clock=false,force=false) {
+    const p=projectStore.state,current=videoAtTime(p.video,audioEngine.getProjectTime()),source=videoSourceTarget(p,window.videoClipEditor?.selected);
+    const info=p.videoClips.length?window.videoClipEditor?.infos.get(source.asset):videoPreview?.info;
+    if(clock!==true){const key=JSON.stringify([p.video,p.output,p.master.loudnorm,source.id,source.name,source.start,source.end,source.speed,info?.duration]);if(!force&&key===settingsKey)return;settingsKey=key;}
+    scope.textContent=p.videoClips.length?`Kaynak: ${source.name||'seçili video klibi'}`:'Kaynak: tek video';
     for(const {input,range,section,key} of controls) {
-      const value=projectStore.state[section][key];
+      if(clock===true&&(!PROJECT_SCHEMA.videoKeyframeFields.includes(key)||document.activeElement===input||document.activeElement===range))continue;
+      const sourceField=section==='video'&&['start','end','speed'].includes(key);
+      const value=sourceField?source[key]:section==='video'?current[key]:projectStore.state[section][key];
       if(input.type==='checkbox')input.checked=value;else input.value=value??'';
       if(range)range.value=value;
-      const disabled=section==='video' && key==='speed' && projectStore.state.video.linkSpeed;
+      if(sourceField&&info){
+        if(key==='start')input.max=String(Math.max(0,(source.end??info.duration)-EDIT_MIN_CLIP_SECONDS));
+        if(key==='end'){input.min=String(source.start+EDIT_MIN_CLIP_SECONDS);input.max=String(info.duration);input.dataset.scrubBase=String(source.end??info.duration);}
+      }
+      const disabled=section==='video'&&(p.video.groupLocked||sourceField&&!info||key==='speed'&&p.video.linkSpeed);
       input.disabled=disabled;if(range)range.disabled=disabled;
     }
     document.getElementById('previewMode').textContent=projectStore.state.output.interpolation==='motion'?'Ara kare · çıktıda':'';
   }
   projectStore.addEventListener('change',refresh);refresh();
+  document.addEventListener('project-time',()=>refresh(true));
+  for(const event of ['video-selection-changed','video-ready'])document.addEventListener(event,()=>refresh());
 });
 
 /* ── VideoFX Tab ─────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   const fxControls = [];
+  let fxKey=null;
   const change = edit => {
     try { projectStore.update(edit); }
-    catch (error) { document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message})); fxRefresh(); }
+    catch (error) { document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message})); fxRefresh(true); }
   };
 
   const container = document.getElementById('videofxPanel');
@@ -234,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     range.addEventListener('change', () => projectStore.commit());
     range.addEventListener('blur', () => projectStore.commit());
     numInput.addEventListener('change', () => {
-      if (!numInput.validity.valid) { fxRefresh(); return; }
+      if (numInput.value==='' || !numInput.validity.valid) { fxRefresh(true); return; }
       range.value = numInput.value;
       change(p => { p[section][key] = Number(numInput.value); });
       if (onAdjust) onAdjust(Number(numInput.value));
@@ -355,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const chromaColorPicker = document.createElement('input');
   chromaColorPicker.type = 'color';
-  chromaColorPicker.id = 'vfxChromaCustomColor';
+  chromaColorPicker.id = 'vfxChromaCustomColor';chromaColorPicker.setAttribute('aria-label','Chroma key özel rengi');
   chromaColorPicker.title = 'Özel Chroma Key Rengi Seç';
   chromaColorPicker.style.cssText = 'width: 32px; height: 28px; padding: 0; border: none; border-radius: 4px; cursor: pointer;';
   chromaColorPicker.addEventListener('input', () => {
@@ -459,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const bassCustomColor = document.createElement('input');
   bassCustomColor.type = 'color';
-  bassCustomColor.id = 'vfxBassCustomColor';
+  bassCustomColor.id = 'vfxBassCustomColor';bassCustomColor.setAttribute('aria-label','Bas efekti özel rengi');
   bassCustomColor.title = 'Özel Bas Rengi Seç';
   bassCustomColor.style.cssText = 'width: 32px; height: 28px; padding: 0; border: none; border-radius: 4px; cursor: pointer;';
   bassCustomColor.addEventListener('input', () => {
@@ -626,9 +663,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   container.append(resetAll);
 
+  const choiceSync=[...container.querySelectorAll('.video-presets,.vfx-theme-row,.vfx-button-row')].map(root=>{
+    const multiple=!!root.querySelector('.bass-btn');
+    const label=root.closest('.vfx-section')?.querySelector('h3')?.textContent||'Görünüm seçimi';
+    return bindChoiceGroup(root,multiple,label);
+  });
+
   /* ── State Refresh ── */
-  function fxRefresh() {
+  function fxRefresh(force=false) {
     const v = projectStore.state.video;
+    const key=JSON.stringify([v,projectStore.state.background.vhs]);if(force!==true&&key===fxKey)return;fxKey=key;
     for (const { range, numInput, section, key } of fxControls) {
       const spec = PROJECT_SCHEMA?.[section]?.[key];
       const val = projectStore.state[section]?.[key] ?? spec?.default ?? 0;
@@ -693,6 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     highlightActiveProfile();
+    for(const sync of choiceSync)sync();
   }
 
   projectStore.addEventListener('change', fxRefresh);

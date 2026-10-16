@@ -4,6 +4,8 @@ function openStudioProject(value, {checkpoint = true} = {}) {
   const project = validateProject(value);
   if (checkpoint && document.dispatchEvent(new Event('project-before-open', {cancelable:true})) === false)
     throw new Error('Açık taslak kaydedilemedi. Kaydet ile dosyaya bir kopya alın.');
+  document.dispatchEvent(new Event('project-will-open'));
+  projectStore.epoch++;
   audioEngine.stopAll();
   for (const kind of new Set([...Object.keys(audioEngine.files),...Object.keys(project.tracks)])) {
     const actual = audioEngine.files[kind], expected = project.tracks[kind]?.source;
@@ -39,13 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const input = document.createElement('input');
     input.type = 'number'; input.className = 'number-input';
     input.min = spec.min; input.max = spec.max; input.step = step;
+    if(section==='track'&&['start','end','offset','fadeIn','fadeOut'].includes(key))input.dataset.timeUnit='';
     if(spec.default!==null)input.dataset.reset=spec.default;
     input.id = kind ? `${kind}-${key}` : `${section}-${key}`;
     wrapper.append(caption, input); parent.append(wrapper);
     fields.push({input, section, key, kind});
     input.addEventListener('change', () => {
       if (!input.validity.valid || input.value === '') { error('Geçerli bir sayı girin.'); projectStore.notify(); return; }
-      change(project => { (kind ? project.tracks[kind] : project[section])[key] = Number(input.value); });
+      change(project => {
+        if(kind&&key==='offset')moveAudioLayer(project,kind,Number(input.value));
+        else (kind ? project.tracks[kind] : project[section])[key] = Number(input.value);
+      });
     });
     return input;
   }
@@ -93,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el(key + 'Out').addEventListener('change', () => {
       const input = el(key + 'Out');
       if (!input.validity.valid || input.value === '') { projectStore.notify(); return; }
-      change(p => { p.effects[key] = Number(input.value); });
+      change(p => { p.effects[key] = key==='bass'?bassGainPercent(Number(input.value)):Number(input.value); });
     });
   }
   // A drag is one undo step, not one step per input event.
@@ -106,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
   el('redoBtn').addEventListener('click', () => projectStore.redo());
 
   el('saveProjectBtn').addEventListener('click', () => {
-    projectStore.commit();
-    const blob = new Blob([JSON.stringify(projectStore.state, null, 2)], {type:'application/json'});
+    let serialized;try{serialized=serializeProject(projectStore.snapshot(),true);}catch(err){error(err.message);return;}
+    const blob = new Blob([serialized], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'cozy-project.json';
     anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -115,9 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   el('openProjectInput').addEventListener('change', async event => {
     const file = event.target.files[0]; if (!file) return;
+    const before=projectStore.state,epoch=projectStore.epoch;
     try {
-      if (file.size > 1024 * 1024) throw new Error('Proje dosyası çok büyük.');
-      openStudioProject(JSON.parse(await file.text()));
+      if (file.size > PROJECT_SCHEMA.limits.projectJsonBytes) throw new Error('Proje dosyası çok büyük.');
+      const text=await file.text();
+      if(projectStore.state!==before||projectStore.epoch!==epoch)throw new Error('Dosya okunurken proje değişti; dosyayı yeniden seçin.');
+      openStudioProject(JSON.parse(text));
     } catch (err) { error(err.message); }
     finally { event.target.value = ''; }
   });
@@ -128,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const object = kind ? project.tracks[kind] : project[section];
       const value = object[key] ?? object.source?.duration ?? 0;
       input.value = Number(value.toFixed(3));
-      input.disabled = !!kind && !object.source;
+      input.disabled = !!kind && (!object.source || kind==='main'&&project.mainClips&&['start','end'].includes(key));
     }
     for (const kind of TRACK_IDS) {
       const track = project.tracks[kind];

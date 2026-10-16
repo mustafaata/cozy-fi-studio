@@ -6,6 +6,55 @@ from numbers import Real
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+_SUBTITLE_SCHEMA = json.loads((ROOT / 'static/project-schema.json').read_text(encoding='utf-8'))
+
+
+def validate_subtitle_cue_style(value):
+    specs = _SUBTITLE_SCHEMA['subtitleCueStyle']
+    if not isinstance(value, dict) or set(value)-set(specs):
+        raise ValueError('Altyazı satır stili geçersiz.')
+    for key, item in value.items():
+        spec = specs[key]
+        if spec['type'] == 'number':
+            valid = type(item) in (int, float) and math.isfinite(item) and spec['min'] <= item <= spec['max']
+        elif spec['type'] == 'boolean':
+            valid = type(item) is bool
+        else:
+            valid = isinstance(item, str) and len(item) <= spec['maxLength'] if 'maxLength' in spec else isinstance(item, str)
+            valid = valid and ('values' not in spec or item in spec['values'])
+        if not valid:
+            raise ValueError('Altyazı satır stili geçersiz.')
+    if ('font' in value and value['font'] not in _SUBTITLE_SCHEMA['lyrics']['font']['values'] or
+            any(key in value and not re.fullmatch(r'#[a-fA-F0-9]{6}', value[key]) for key in ('color', 'outlineColor'))):
+        raise ValueError('Altyazı yazı tipi veya rengi geçersiz.')
+    return dict(value)
+# Match ECMAScript \s/trim exactly; Python also treats U+0085 as whitespace.
+LYRIC_WHITESPACE = "\t\n\v\f\r \u00a0\u1680" + "".join(chr(n) for n in range(0x2000, 0x200b)) + "\u2028\u2029\u202f\u205f\u3000\ufeff"
+LYRIC_WORD_PATTERN = re.compile(f"[^{re.escape(LYRIC_WHITESPACE)}]+")
+
+
+def retime_words(row, previous):
+    """Keep a row's word pauses when its source-time range is edited."""
+    words = row.get("words")
+    if words is None:
+        return
+    tokens = LYRIC_WORD_PATTERN.findall(row["text"])
+    if row["start"] is None or row["end"] is None or tokens != [word["text"] for word in words]:
+        row.pop("words", None)
+        return
+    if (row["start"], row["end"]) == (previous["start"], previous["end"]):
+        return
+    span = previous["end"]-previous["start"]
+    if span <= 0:
+        row.pop("words", None)
+        return
+    def mapped(time):
+        return row["start"]+(time-previous["start"])*(row["end"]-row["start"])/span
+    updated = [dict(word, start=mapped(word["start"]), end=mapped(word["end"])) for word in words]
+    if any(word["end"]-word["start"] < .001-1e-8 for word in updated):
+        row.pop("words", None)
+    else:
+        row["words"] = updated
 
 
 def repair_lines(lines, duration):
@@ -44,9 +93,27 @@ def repair_lines(lines, duration):
     original_by_id = {r.get("id"): r for r in lines}
     for row in result + untimed:
         original = original_by_id.get(row.get("id"), {})
+        retime_words(row, original)
         if any(original.get(k) != row.get(k) for k in ("start", "end", "text")):
             row.pop("reviewed", None)
     return result + untimed
+
+
+def validate_words(words, text, start, end, limits):
+    tokens = LYRIC_WORD_PATTERN.findall(text)
+    if not isinstance(words, list) or len(words) != len(tokens) or len(words) > limits["words"] or start is None or end is None:
+        raise ValueError("Kelime zamanları zamanlanmış satırdaki tüm sözcükleri içermeli.")
+    result = []
+    for index, word in enumerate(words):
+        if not isinstance(word, dict) or word.get("text") != tokens[index]:
+            raise ValueError("Kelime metni satırla eşleşmiyor.")
+        a, b = word.get("start"), word.get("end")
+        if (any(type(v) not in (int, float) or not math.isfinite(v) for v in (a, b)) or
+                a < start-1e-7 or b > end+1e-7 or b-a < limits["wordDuration"]-1e-8 or
+                result and a < result[-1]["end"]-1e-7):
+            raise ValueError("Kelime zamanları satır içinde, sıralı ve çakışmadan tanımlanmalı.")
+        result.append(dict(text=word["text"], start=a, end=b))
+    return result
 
 
 def validate_lines(lines, limits):
@@ -59,7 +126,7 @@ def validate_lines(lines, limits):
         identifier, text = line.get("id"), line.get("text")
         if not isinstance(identifier, str) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", identifier) or identifier in ids:
             raise ValueError("Söz satırı kimliği geçersiz.")
-        if not isinstance(text, str) or not text.strip() or len(text) > limits["text"] or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", text):
+        if not isinstance(text, str) or not text.strip(LYRIC_WHITESPACE) or len(text) > limits["text"] or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", text):
             raise ValueError("Söz satırı boş veya çok uzun.")
         ids.add(identifier)
         total += len(text)
@@ -76,9 +143,13 @@ def validate_lines(lines, limits):
         reviewed = line.get("reviewed", False)
         if type(reviewed) is not bool:
             raise ValueError("Söz onay durumu geçersiz.")
-        result.append(dict(id=identifier, text=text.strip(), start=start, end=end, confidence=confidence, review=review))
+        result.append(dict(id=identifier, text=text.strip(LYRIC_WHITESPACE), start=start, end=end, confidence=confidence, review=review))
         if reviewed:
             result[-1]["reviewed"] = True
+        if "words" in line:
+            result[-1]["words"] = validate_words(line["words"], text.strip(LYRIC_WHITESPACE), start, end, limits)
+        if 'cueStyle' in line:
+            result[-1]['cueStyle'] = validate_subtitle_cue_style(line['cueStyle'])
     if total > limits["total"]:
         raise ValueError("Söz metni çok uzun.")
     timed = sorted((r for r in result if r["start"] is not None), key=lambda r: r["start"])
@@ -91,31 +162,40 @@ def project_cues(project, duration):
     lyrics = project["lyrics"]
     if not lyrics["enabled"]:
         return []
-    start, speed = project["tracks"]["main"]["start"], project["effects"]["speed"]
+    if lyrics.get('timeBase') == 'project':
+        return sorted((dict(line,start=max(0,line['start']+lyrics['offset']),end=min(duration,line['end']+lyrics['offset']))
+                       for line in lyrics['lines'] if line['start'] is not None and
+                       min(duration,line['end']+lyrics['offset'])>max(0,line['start']+lyrics['offset'])),key=lambda row:row['start'])
+    main, speed = project['tracks']['main'], project["effects"]["speed"]
+    clips = project.get('mainClips') or [dict(start=main['start'],
+        end=main['end'] if main['end'] is not None else (main.get('source') or {}).get('duration', main['start']+duration*speed), offset=0)]
     cues = []
-    for line in lyrics["lines"]:
-        if line["start"] is None:
-            continue
-        a = max(0, (line["start"] + lyrics["offset"] - start) / speed)
-        b = min(duration, (line["end"] + lyrics["offset"] - start) / speed)
-        if b > a:
-            cues.append(dict(line, start=a, end=b))
+    for clip in clips:
+        for line in lyrics["lines"]:
+            if line["start"] is None:
+                continue
+            a = max(clip['offset'], clip['offset']+(line["start"]+lyrics["offset"]-clip['start'])/speed)
+            b = min(duration, clip['offset']+(clip['end']-clip['start'])/speed,
+                    clip['offset']+(line["end"]+lyrics["offset"]-clip['start'])/speed)
+            if b > a:
+                cues.append(dict(line, start=a, end=b))
     return sorted(cues, key=lambda r: r["start"])
 
 
-def apply_text_transform(text, transform):
+def apply_text_transform(text, transform,language='tr'):
     if not transform or transform == "none":
         return text
     if transform == "uppercase":
-        # Turkish casing rules: i -> İ, ı -> I
-        return text.replace("i", "İ").replace("ı", "I").upper()
+        if language.split('-')[0] in ('tr','az','und'):text=text.replace("i", "İ").replace("ı", "I")
+        return text.upper()
     if transform == "lowercase":
-        return text.replace("İ", "i").replace("I", "ı").lower()
+        if language.split('-')[0] in ('tr','az','und'):text=text.replace("İ", "i").replace("I", "ı")
+        return text.lower()
     return text
 
 
-def display_text(text, transform="none"):
-    text = apply_text_transform(text, transform)
+def display_text(text, transform="none",language='tr'):
+    text = apply_text_transform(text, transform,language)
     # ASS metacharacters are shown as visible full-width punctuation, never commands.
     return text.replace("\\", "＼").replace("{", "｛").replace("}", "｝").replace("\r", "").replace("\t", " ")
 
@@ -133,7 +213,7 @@ def wrap_text(text, style, width, height, metrics=None):
     max_height = height * 0.72
     spacing = style.get("letterSpacing", 0) * height / 720
     transform = style.get("textTransform", "none")
-    displayed = display_text(text, transform)
+    displayed = display_text(text, transform,style.get('language','tr'))
 
     def do_wrap(s, sp):
         measure = lambda word: sum(font["widths"].get(c, font["fallback"]) * s / 1000 + sp for c in word)
@@ -183,7 +263,8 @@ def write_ass(project, width, height, duration, path, beats=None):
     cues = project_cues(project, duration)
     if not cues:
         return False
-    style = project["lyrics"]
+    language=next((track['language'] for track in project.get('subtitleTracks',[]) if track['id']==project.get('subtitles',{}).get('active')),'tr')
+    style = {**project["lyrics"],'language':language}
     font_name = style.get("font", "Montserrat")
     size = style["fontSize"] * height / 720
     outline = style["outline"] * height / 720

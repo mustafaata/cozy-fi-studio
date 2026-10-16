@@ -13,7 +13,7 @@ def check_cancel(cancel):
         raise RenderCancelled("İptal edildi")
 
 
-def run_ffmpeg(args, cancel=None, progress=None, duration=1):
+def run_ffmpeg(args, cancel=None, progress=None, duration=1, stderr_line=None):
     check_cancel(cancel)
     command = [args[0], "-nostdin", "-hide_banner", "-loglevel", "error",
                "-progress", "pipe:1", "-nostats", *args[1:]]
@@ -28,6 +28,8 @@ def run_ffmpeg(args, cancel=None, progress=None, duration=1):
             output(line.strip())
 
     def error_line(line):
+        if stderr_line:
+            stderr_line(line)
         errors.append(line)
         if len(errors) > 30:
             errors.pop(0)

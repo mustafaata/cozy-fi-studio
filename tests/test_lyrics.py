@@ -30,6 +30,19 @@ def project():
 
 
 class LyricTests(unittest.TestCase):
+    def test_project_clock_cues_ignore_source_speed_and_render_in_montage_gaps(self):
+        p=project()
+        p['effects']['speed']=1.5
+        p['mainClips']=[dict(id='one',start=0,end=.75,offset=0),dict(id='two',start=1,end=1.75,offset=1.5)]
+        p['lyrics'].update(timeBase='project',offset=.1,lines=[dict(id='gap',text='In the gap',start=.7,end=1.2),dict(id='last',text='Tail',start=1.8,end=3)])
+        p=validate_project(p)
+        cues=project_cues(p,2)
+        self.assertAlmostEqual(cues[0]['start'],.8)
+        self.assertAlmostEqual(cues[0]['end'],1.3)
+        self.assertEqual(cues[1]['end'],2)
+        p['lyrics']['enabled']=False
+        self.assertEqual(project_cues(p,2),[])
+
     def test_contract_and_cut_speed_offset(self):
         p = project()
         for speed in (.5, 1, 1.5):
@@ -131,7 +144,8 @@ class LyricIntegrationTests(unittest.TestCase):
         def recognize(*args):
             started.set()
             release.wait(2)
-            return dict(lines=[dict(id="a",text="İlk satır",start=.1,end=.5)],language="tr")
+            return dict(lines=[dict(id="a",text="İlk satır",start=.1,end=.5,
+                words=[dict(text='İlk',start=.1,end=.25),dict(text='satır',start=.3,end=.5)])],language="tr")
         client=app.app.test_client()
         def data():
             return dict(file=(io.BytesIO(self.audio.read_bytes()),"song.wav"),start=".5",end="1.5",model="base",language="tr")
@@ -150,6 +164,8 @@ class LyricIntegrationTests(unittest.TestCase):
             self.assertEqual(result['state'],'done',result)
             self.assertEqual(result['result']['lines'][0]['start'],.6)
             self.assertEqual(result['result']['lines'][0]['end'],1)
+            self.assertEqual(result['result']['lines'][0]['words'],[
+                dict(text='İlk',start=.6,end=.75),dict(text='satır',start=.8,end=1)])
         self.assertEqual(client.post('/api/lyrics/jobs/missing/cancel').status_code,404)
         bad=data();bad['model']='../../model'
         self.assertEqual(client.post('/api/lyrics/transcribe',data=bad).status_code,400)

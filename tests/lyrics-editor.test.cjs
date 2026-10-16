@@ -21,15 +21,16 @@ module.exports=(async()=>{
   el('lyricFontMetrics').textContent=fs.readFileSync(path.join(root,'static/lyric-fonts.json'),'utf8');
   el('lyricsModel').value='base';el('lyricsLanguage').value='tr';el('lyricsTimebase').value='source';
   const requests=[],pending=[];
-  const doc={getElementById:el,createElement:t=>new Element(t),addEventListener(k,fn){(events[k]??=[]).push(fn);},dispatchEvent(e){events[e.type]?.forEach(f=>f(e));}};
+  const doc={fonts:{load:async()=>[],ready:Promise.resolve()},getElementById:el,createElement:t=>new Element(t),addEventListener(k,fn){(events[k]??=[]).push(fn);},dispatchEvent(e){events[e.type]?.forEach(f=>f(e));}};
   const audio={visualSignal:()=>({bass:0,bassHit:0}),files:{main:{name:'song.wav'}},getProjectTime:()=>sourceTime,wsMain:{on(){},isPlaying:()=>true},play(){},pause(){},seekTo(t){sourceTime=t;}};
   const ctx=vm.createContext({document:doc,audioEngine:audio,crypto:require('node:crypto').webcrypto,Event,EventTarget,
     CustomEvent:class extends Event{constructor(t,o){super(t);this.detail=o?.detail;}},ResizeObserver:class{observe(){}},
     FormData:class extends Map{append(k,v){this.set(k,v);}},fetch(url,options){requests.push({url,options});if(url==='/api/lyrics/models')return Promise.resolve({ok:true,json:async()=>({available:true,models:{base:true,small:false}})});return new Promise(resolve=>pending.push(body=>resolve({ok:true,json:async()=>body})));},
+    LyricWordEditor:class {refresh(){}clock(){}},
     URLSearchParams,window:{addEventListener(){}},clearTimeout(){},
     setTimeout(){return 1;}});
   vm.runInContext(fs.readFileSync(path.join(root,'static/js/mouse.js'),'utf8').split("document.addEventListener('DOMContentLoaded'")[0],ctx);
-  for(const f of ['project.js','bass-controls.js','lyric-renderer.js','lyrics.js','lyric-review.js','lyric-bulk.js','lyric-range.js'])vm.runInContext(fs.readFileSync(path.join(root,'static/js',f),'utf8'),ctx);
+  for(const f of ['project.js','text-materials.js','bass-controls.js','lyric-word-renderer.js','lyric-renderer.js','lyrics.js','lyric-review.js','lyric-bulk.js','lyric-range.js'])vm.runInContext(fs.readFileSync(path.join(root,'static/js',f),'utf8'),ctx);
   const store=vm.runInContext('projectStore',ctx);
   store.update(p=>{p.effects.speed=1;p.tracks.main.source={name:'song.wav',size:1,lastModified:0,duration:20};});
   vm.runInContext(fs.readFileSync(path.join(root,'static/js/lyrics-editor.js'),'utf8'),ctx);

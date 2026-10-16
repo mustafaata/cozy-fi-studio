@@ -1,0 +1,1734 @@
+{
+  "audit_started": "2026-10-15",
+  "audit_completed": "2026-10-16",
+  "timezone": "Europe/Istanbul",
+  "workspace": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web",
+  "head": "f97a382ad783521ca296f4b15471b5eb1471c55f",
+  "working_tree": "Denetim öncesinde çok sayıda değiştirilmiş ve izlenmeyen dosya vardı; mevcut çalışma ağacı incelendi.",
+  "counts": {
+    "P1": 19,
+    "P2": 71,
+    "P3": 10
+  },
+  "scope": "99 ürün bulgusu, 1 test düzeneği bulgusu (A068). Uygulama kaynak kodu değiştirilmedi.",
+  "verification_note": "Kontrollü deneyler VM, sentetik ses/görüntü ve bazı yarışları deterministik tetiklemek için stub kullanır. Statik bulgular uçtan uca çalıştırılmış olarak sunulmaz.",
+  "tests": {
+    "javascript": {
+      "tests": 335,
+      "passed": 335,
+      "failed": 0,
+      "log": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/.local/audit100/js-tests.log"
+    },
+    "python": {
+      "tests": 631,
+      "seconds": 5393.167,
+      "failures": 8,
+      "errors": 4,
+      "log": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/.local/audit-python-20261015.log"
+    },
+    "focused_python": {
+      "tests": 2,
+      "seconds": 33.293,
+      "failed_subtests": 2,
+      "notes": "Canvas testi geçti; VFX-23 ve VFX-26 parity alt testleri başarısız.",
+      "log": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/.local/audit100/targeted-python.log"
+    }
+  },
+  "findings": [
+    {
+      "id": "A001",
+      "severity": "P1",
+      "file": "start.bat",
+      "line": 10,
+      "title": "Kaynakta servis anahtarı",
+      "detail": "Başlatma betiklerine gerçek görünümlü GIPHY anahtarı gömülmüş; depoya erişen herkes bu kimlik bilgisini alabilir. Anahtarın geçerliliği denenmedi, değeri rapora alınmadı.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "da40974775f6791890fa94f3dc6f1c72847aaa17ebd78810de7e2280dc206ab0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/start.bat"
+    },
+    {
+      "id": "A002",
+      "severity": "P1",
+      "file": "security.py",
+      "line": 18,
+      "title": "Hata günlüğü kimlik bilgilerini maskelemiyor",
+      "detail": "public_error URL sorguları ve traceback dahil ham hatayı kaydediyor. api_key=AUDIT_SENTINEL içeren deneme hata metni günlükte aynen kaldı.",
+      "evidence": "boundary-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "86def10faf16fa3836fb006f7203a2f102f589cafa8926cdffcf9eed7e54d5ce",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/security.py"
+    },
+    {
+      "id": "A003",
+      "severity": "P2",
+      "file": "start.bat",
+      "line": 11,
+      "title": "Başlatıcı dış yapılandırmayı eziyor",
+      "detail": "Betikler COZY_PORT ve GIPHY_API_KEY ortam değerlerini koşulsuz atıyor; önceden ayarlanan port/anahtar kullanılmıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "da40974775f6791890fa94f3dc6f1c72847aaa17ebd78810de7e2280dc206ab0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/start.bat"
+    },
+    {
+      "id": "A004",
+      "severity": "P2",
+      "file": "project.py",
+      "line": 398,
+      "title": "Varsayılan kanallar kanal sınırını aşıyor",
+      "detail": "32 kanallı, rain/fire içermeyen geçerli giriş doğrulandıktan sonra 34 kanala çıkıyor; sınır varsayılanlar eklenmeden kontrol ediliyor.",
+      "evidence": "js-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "9bb03abca15cb1de01f952c11efe4114a5bab18aa3f07f5d9adfd7ccf028b71f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/project.py"
+    },
+    {
+      "id": "A005",
+      "severity": "P1",
+      "file": "project_package.py",
+      "line": 93,
+      "title": "Windows üzerinde büyük/küçük harfli kimlikler çakışıyor",
+      "detail": "MAIN ve main ayrı kanal kabul ediliyor fakat paket açılırken aynı Windows dosyasına yazılıyor; ikinci kaynak birinciyi eziyor.",
+      "evidence": "python-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "c45bbc67e098f52b66b669dc4e9a374fd1527cd4bfa561daedec1f63379b042a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/project_package.py"
+    },
+    {
+      "id": "A006",
+      "severity": "P1",
+      "file": "project_package.py",
+      "line": 34,
+      "title": "Ses ve kamera paket üyeleri çakışıyor",
+      "detail": "camera_000 adlı ses kanalı ile ilk kamera aynı media/camera_000 adını kullanıyor; üç kaynak iki üyeye düşüyor ve paket medyası bozuluyor.",
+      "evidence": "python-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "c45bbc67e098f52b66b669dc4e9a374fd1527cd4bfa561daedec1f63379b042a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/project_package.py"
+    },
+    {
+      "id": "A007",
+      "severity": "P2",
+      "file": "static/js/subtitle-format-editor.js",
+      "line": 15,
+      "title": "Altyazı içe aktarmasını iptal etmek bekleyen okumayı iptal etmiyor",
+      "detail": "Mevcut taslak açıkken ikinci dosya okunmaya başlanıp İptal seçilirse taslak temizleniyor fakat epoch artırılmıyor. Bekleyen file.text tamamlanınca iptal edilen taslak yeniden açılıyor; kontrollü denemede false olan draft tekrar true oldu.",
+      "evidence": "browser-final-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "7d9ef5aaf7b38ca2668e9f96ade05be25ab9f3a9e4b7c9477a1064483091cecb",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/subtitle-format-editor.js"
+    },
+    {
+      "id": "A008",
+      "severity": "P1",
+      "file": "audio_render.py",
+      "line": 32,
+      "title": "Ses kimlikleri ara işlem dosyalarını ezebiliyor",
+      "detail": "decoded_clip, tempo_input ve tempo_output gibi kabul edilen kanal adları aynı çalışma klasöründeki FFmpeg ara WAV adlarıyla çakışıyor; başka kaynağın PCM verisi değişebiliyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "b72a14b1eec35b189e11d2230ec4e1f7414de87618016be42a679115d3f3bf87",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/audio_render.py"
+    },
+    {
+      "id": "A009",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 28,
+      "title": "Prototip adları ses nesnesi sanılıyor",
+      "detail": "toString gibi geçerli kanal kimliklerinde düz nesne haritaları kalıtılmış fonksiyonu mevcut WaveSurfer/Regions nesnesi sanıyor; kanal kurulumu bozuluyor.",
+      "evidence": "browser-visual-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A010",
+      "severity": "P2",
+      "file": "static/js/dynamic-tracks.js",
+      "line": 20,
+      "title": "Dinamik kanal adları yerleşik DOM kimlikleriyle çakışıyor",
+      "detail": "lyrics/output/videofx/yt kanalları mevcut inspector kimliklerini tekrar üretiyor; kaynak seçimi yanlış panele gidiyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "1014a085d86ac69fbe42e61f029b8bd91dd9785f730dca7216a2697df5a33715",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/dynamic-tracks.js"
+    },
+    {
+      "id": "A011",
+      "severity": "P1",
+      "file": "audio_render.py",
+      "line": 24,
+      "title": "Beyan edilen ses süresi gerçek çözümlemeyi sınırlamıyor",
+      "detail": "Bir saniye beyan edilen on saniyelik dosyanın tamamı PCM olarak okunuyor. Uzun/sıkıştırılmış girdide süre kontrolünden önce bellek tüketiliyor.",
+      "evidence": "boundary-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "b72a14b1eec35b189e11d2230ec4e1f7414de87618016be42a679115d3f3bf87",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/audio_render.py"
+    },
+    {
+      "id": "A012",
+      "severity": "P2",
+      "file": "audio_render.py",
+      "line": 165,
+      "title": "Sessiz kanallar da zorunlu çözülüyor",
+      "detail": "Render başlangıcında muted veya solo nedeniyle duyulmayan kaynaklar da açılıyor; sessiz bozuk bir dosya duyulabilir sağlam miksin dışa aktarımını durduruyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "b72a14b1eec35b189e11d2230ec4e1f7414de87618016be42a679115d3f3bf87",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/audio_render.py"
+    },
+    {
+      "id": "A013",
+      "severity": "P1",
+      "file": "static/js/editor.js",
+      "line": 122,
+      "title": "Kaydedilen proje kendi açma sınırına sığmıyor",
+      "detail": "Arayüz hassasiyetinde geçerli bir 33³ LUT ile pretty JSON 1.956.512 bayt oluyor; aynı uygulama 1 MiB üstünü açmayı reddediyor.",
+      "evidence": "js-more-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "1c8cc2f8c5017a6f297c916be16db379ca565c828ce8c65980d2091f9fa3d64c",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/editor.js"
+    },
+    {
+      "id": "A014",
+      "severity": "P1",
+      "file": "static/js/drafts.js",
+      "line": 46,
+      "title": "Otomatik taslak başarıyla yazılıp okunamıyor",
+      "detail": "flush boyut kontrolü yapmıyor, read 2 MiB sınırı uyguluyor. Geçerli tam hassasiyetli LUT projesi kaydedildi görünürken kurtarma başarısız oluyor.",
+      "evidence": "js-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "d73f6940b7c90695602e86b13cf336e337205f33301e8e6f52712a93ea4a41e7",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/drafts.js"
+    },
+    {
+      "id": "A015",
+      "severity": "P2",
+      "file": "project_package.py",
+      "line": 12,
+      "title": "Geçerli LUT projesi paketlenemiyor",
+      "detail": "Doğrulayıcının kabul ettiği 33³ tam hassasiyetli LUT, Python JSON serileştirmesinde 2 MiB metadata sınırını geçiyor; geçerli proje paket ihracı reddediliyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "c45bbc67e098f52b66b669dc4e9a374fd1527cd4bfa561daedec1f63379b042a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/project_package.py"
+    },
+    {
+      "id": "A016",
+      "severity": "P2",
+      "file": "app.py",
+      "line": 129,
+      "title": "Flask form sınırı uygulamanın proje sınırından düşük",
+      "detail": "MAX_FORM_MEMORY_SIZE varsayılan 500.000 bayt kalıyor. Geçerli büyük LUT proje alanı ilan edilen 2 MiB sınırına gelmeden HTTP 413 alıyor; gösterilen 512 MB mesajı da nedeni açıklamıyor.",
+      "evidence": "boundary-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4f636317baf00c31c27bded4f76f45ac907d8c555f7d311ffbb4ac10ca47966f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/app.py"
+    },
+    {
+      "id": "A017",
+      "severity": "P1",
+      "file": "static/js/packages.js",
+      "line": 24,
+      "title": "Başarısız paket açma geri alma geçmişini siliyor",
+      "detail": "Paket uygulanırken bir ses yüklemesi hata verirse eski proje geri yükleniyor fakat önceki past/future dizileri boşaltılıyor; önceki çalışmanın geri alma zinciri kayboluyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "d6e92b0765be1fc3deede0bffdaff7ff042d36c148cf65c753ca033aba7f8db9",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/packages.js"
+    },
+    {
+      "id": "A018",
+      "severity": "P1",
+      "file": "static/js/editor.js",
+      "line": 123,
+      "title": "Geciken proje okuması yeni düzenlemeleri eziyor",
+      "detail": "JSON file.text tamamlanırken proje sürümü kontrol edilmiyor. Denemede arada yapılan seviye 37 düzenlemesi eski dosyadaki 100 ile değişti.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "1c8cc2f8c5017a6f297c916be16db379ca565c828ce8c65980d2091f9fa3d64c",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/editor.js"
+    },
+    {
+      "id": "A019",
+      "severity": "P1",
+      "file": "static/js/overlay.js",
+      "line": 160,
+      "title": "Geciken görsel yüklemesi başka projeyi değiştiriyor",
+      "detail": "Yükleme yanıtına proje kimliği/sürümü bağlanmamış; yükleme sürerken yeni proje açma veya katmanı temizleme sonrası eski yanıt yeni projeye uygulanıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "abc3ec582af71bbf74b111000e091dde7c1fb1ca478d6ea1ea5c4d77cc6490ea",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/overlay.js"
+    },
+    {
+      "id": "A020",
+      "severity": "P1",
+      "file": "static/js/microphone-editor.js",
+      "line": 14,
+      "title": "İptal edilmiş proje açma bekleyen taslakları siliyor",
+      "detail": "project-before-open olayında bazı dinleyiciler taslakları temizliyor; başka dinleyici preventDefault ile açmayı engellese de mikrofon/comp/çeviri taslağı geri gelmiyor.",
+      "evidence": "browser-visual-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "8b65e8276d8decac8422faf97cf2a32105993b14ce8ed49d80c6e2978eb5c56e",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/microphone-editor.js"
+    },
+    {
+      "id": "A021",
+      "severity": "P2",
+      "file": "video_audio.py",
+      "line": 31,
+      "title": "Bağlı video sesinin hız hesabı görüntüden farklı",
+      "detail": "linkSpeed açıkken çıkarma clip.speed × global speed kullanıyor; görüntü saati yalnızca global speed kullanıyor. 2 × 0,5 denemesinde ses 10 sn, görüntü 20 sn oluyor.",
+      "evidence": "python-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "2e5712d63d74262b67811b6914e2d71374001b245f22d5464566f5f510254c02",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/video_audio.py"
+    },
+    {
+      "id": "A022",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 1075,
+      "title": "Ana reverb önizlemesi dışa aktarımla eşleşmiyor",
+      "detail": "Tarayıcı rastgele ve normalize edilen impulse kullanıyor; sunucu sabit tohum ve farklı normalizasyon kullanıyor. Aynı proje her açılışta ve MP4 çıktısında farklı yankı üretiyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A023",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 5,
+      "title": "Nötr ton önizlemesi frekans kesiyor",
+      "detail": "Tarayıcı none tonunda 20 Hz high-pass/22 kHz low-pass uygular; sunucu none yolunda filtreyi atlar. Özellikle çok düşük frekans içeren kaynakta duyulan ve çıkan ses farklıdır.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A024",
+      "severity": "P2",
+      "file": "static/js/audio-comp.js",
+      "line": 45,
+      "title": "Çok kanallı kaynakların merkez/çevre sesi kayboluyor",
+      "detail": "Comp, montaj ve spectral tarayıcı yardımcıları yalnız ilk iki kanalı kopyalıyor; sunucu speaker downmix yapıyor. 5.1 kaynağın merkez diyaloğu tarayıcı işleminde atılıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "7a206f95300db7edd8cc13af4c4d3752d08a6c6424cf6886858ec6c6f9e2d7c3",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio-comp.js"
+    },
+    {
+      "id": "A025",
+      "severity": "P2",
+      "file": "static/js/dynamic-tracks.js",
+      "line": 82,
+      "title": "Ducking kontrolü sesi etkilemiyor",
+      "detail": "Kullanıcı kontrolü track.ducking alanını değiştiriyor fakat render ve canlı DSP bu alanı tüketmiyor; arayüzdeki değişim duyulabilir sonuç vermiyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "1014a085d86ac69fbe42e61f029b8bd91dd9785f730dca7216a2697df5a33715",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/dynamic-tracks.js"
+    },
+    {
+      "id": "A026",
+      "severity": "P2",
+      "file": "static/js/dynamics-node.js",
+      "line": 12,
+      "title": "İşleyici hatası kanalı kalıcı olarak susturuyor",
+      "detail": "processorerror girişi sıfırlıyor fakat bozuk worklet düğümü yeniden kullanılmaya devam ediyor; duraklat/oynat toparlamıyor. Aynı yaşam döngüsü preset worklet yolunda da var.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "50d5cafc2d38291a0123d8bfe35c2c54977160d9c2f13622e1f77d8baee37a5b",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/dynamics-node.js"
+    },
+    {
+      "id": "A027",
+      "severity": "P3",
+      "file": "static/js/audio.js",
+      "line": 1233,
+      "title": "Bas efektini dene düğmesi etki üretmiyor",
+      "detail": "Test bass/bassHit değerlerini artırıyor; çizim sıfır olan bassEnvelope/bassHitEnvelope alanlarını öncelikli okuyor. Denemede hit 1 iken efekt gücü 0 kaldı.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A028",
+      "severity": "P2",
+      "file": "static/js/loudness-editor.js",
+      "line": 1,
+      "title": "BPM değişikliği ses analizi önbelleğini geçersiz kılmıyor",
+      "detail": "Tempo senkronlu efektlerin sesi BPM ile değişiyor fakat loudness imzası rhythm.bpm içermez; eski LUFS/analiz sonucu yeniden kullanılıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4d91f3289c653c6a10ad719bfbcf9d272affa7d29985ed48148e050e9fe7e5db",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/loudness-editor.js"
+    },
+    {
+      "id": "A029",
+      "severity": "P1",
+      "file": "static/js/audio.js",
+      "line": 384,
+      "title": "Bozuk dosya mevcut sağlam ses bağlantısını kaybettiriyor",
+      "detail": "Yeni dosya doğrulanmadan eski dosya/buffer/URL kaldırılıyor; decode hatası sonrası eski ses geri yüklenmiyor.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A030",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 408,
+      "title": "Bozuk ses yüklemesi sonsuza kadar bekleyebiliyor",
+      "detail": "Metadata bekleyen Promise error olayında reject olmuyor ve timeout içermiyor. Geçersiz WAV denemesinde yükleme sonucu gelmedi ve süre 0 kaldı.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A031",
+      "severity": "P2",
+      "file": "static/js/dynamic-tracks.js",
+      "line": 101,
+      "title": "Silinen ses katmanlarının motor kaynakları bırakılmıyor",
+      "detail": "Kanal silme DOM kayıtlarını yalnız gizliyor; wsMap/media/trackNodes ve gözlemciler temizlenmiyor. Geri alma geçmişi 80 işlem sonra silinse bile bu kaynaklar kalıyor; tekrar ekle/sil belleği ve ses düğümlerini biriktiriyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "1014a085d86ac69fbe42e61f029b8bd91dd9785f730dca7216a2697df5a33715",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/dynamic-tracks.js"
+    },
+    {
+      "id": "A032",
+      "severity": "P1",
+      "file": "static/js/audio.js",
+      "line": 408,
+      "title": "WaveSurfer yüklemesi kaynak PCM seviyesini değiştiriyor",
+      "detail": "Paylaşılan getChannelData dizileri waveform yüklemesine veriliyor; WaveSurfer bunları yerinde normalize ediyor. Denemede 1,5/0,75 örnekleri 1/0,5 oldu; gerçek işleme kaynağı değişti.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A033",
+      "severity": "P2",
+      "file": "static/js/dynamic-tracks.js",
+      "line": 29,
+      "title": "Dinamik kanalda mute/solo erişimi yok",
+      "detail": "Mute/solo bağlama yalnız sabit TRACK_IDS için yapılıyor; dinamik kanal kontrollerinde bu düğmeler üretilmiyor. Muted içe alınmış dinamik kanal doğrudan açılamıyor.",
+      "evidence": "browser-more-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "1014a085d86ac69fbe42e61f029b8bd91dd9785f730dca7216a2697df5a33715",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/dynamic-tracks.js"
+    },
+    {
+      "id": "A034",
+      "severity": "P2",
+      "file": "static/js/main-montage-worker.js",
+      "line": 17,
+      "title": "Montaj önizlemesi float sesin headroom değerini kırpıyor",
+      "detail": "Montaj proxy’si örnekleri ±1 aralığına kırpıp 16 bit WAV yazıyor; sunucu float işlemi koruyor. Montaj etkinleşince 0 dBFS üstü comp/işlenmiş sesin biçimi değişiyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "96c329f55d231bcc27c7e27292187c51b6b2cb9a899a90e9d096a3197f893151",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/main-montage-worker.js"
+    },
+    {
+      "id": "A035",
+      "severity": "P2",
+      "file": "static/js/clip-selection.js",
+      "line": 108,
+      "title": "Grup yapıştırmada sidechain eski kanala bağlı kalıyor",
+      "detail": "Birbirini tetikleyen iki kanal birlikte kopyalansa da yeni kanalın detector kaynağı eski t:rain olarak kalıyor; kopyalanan çift bağımsız çalışmıyor.",
+      "evidence": "js-more-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "d8b7500a076de2846ccc8af6ae6661225c278ce34ac92a9979c8bfcf6489342d",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/clip-selection.js"
+    },
+    {
+      "id": "A036",
+      "severity": "P2",
+      "file": "static/js/spectral-audio.js",
+      "line": 13,
+      "title": "Devre dışı spectral taslak yine işleniyor",
+      "detail": "Audition işleyicisi settings.enabled değerini kontrol etmiyor. enabled=false ve −60 dB bölgesiyle denemede yaklaşık 1 olan örnek 0,001 oldu.",
+      "evidence": "js-more-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "78235fbe0e9f736a8dd24ed2511d30b96f0d06ecc280becf700b1582e36082b4",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/spectral-audio.js"
+    },
+    {
+      "id": "A037",
+      "severity": "P2",
+      "file": "static/js/spectral-editor.js",
+      "line": 27,
+      "title": "Spectral kaynak önbelleği eski PCM’leri tutuyor",
+      "detail": "44,1 kHz dönüşümü gereken kaynaklarda canonical anahtarına loadToken ekleniyor fakat dosya değiştirme/proje açmada eski girdiler silinmiyor; analiz edilen eski sürümlerin tam AudioBuffer verileri bellekte kalıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "74366f75fb4528ee8f5c9aa6fdad8c062eac0b6bed362c0a1e9bb394d22e158a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/spectral-editor.js"
+    },
+    {
+      "id": "A038",
+      "severity": "P2",
+      "file": "static/js/audio-prepared-mix.js",
+      "line": 3,
+      "title": "Duyulmayan efekt oynatmayı sunucu hazırlığına bağımlı yapıyor",
+      "detail": "Hazırlık koşulu boş, muted ve solo dışı kanalları da tarıyor; duyulmayacak prepared efekt tüm canlı miksin kapatılıp HTTP hazırlığı beklemesine yol açıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "6c1a385138556b86c709e2e50cb3e47758b9b4c572d47ba9576075ce187fe403",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio-prepared-mix.js"
+    },
+    {
+      "id": "A039",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 838,
+      "title": "Prepared miksle canlı otomasyon duyulmuyor",
+      "detail": "Kayıt fader’i canlı kanal gain’ini değiştiriyor; prepared ses ayrı, önceden hesaplanmış buffer’dan ve canlı kapı sıfırken çalıyor. Kaydedilen hareket audition sırasında sese yansımıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A040",
+      "severity": "P2",
+      "file": "static/js/media-library.js",
+      "line": 89,
+      "title": "Tek arka plan montaja çevrilirken LUT/perspektif kayboluyor",
+      "detail": "İlk video klibine mask/timeRemap/color taşınıyor fakat LUT ve perspective taşınmıyor; ikinci klip ekleme mevcut görüntünün görünümünü değiştiriyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "ae078114615c91d23a425a0feb3271b2fa1f73e32ef323c1a54fc6f4de80bde0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/media-library.js"
+    },
+    {
+      "id": "A041",
+      "severity": "P2",
+      "file": "static/js/sequence-instances.js",
+      "line": 3,
+      "title": "Efekt otomasyon saatleri kliple birlikte kaydırılmıyor",
+      "detail": "Sekans kullanımı başka konuma kopyalanırken standart otomasyon ve motion key saatleri kaydırılıyor, audioFx/creativeFx/textFx otomasyon saatleri aynı kalıyor. Yerel sekans içeriği yeni kullanımda aynı göreli anda çalmıyor.",
+      "evidence": "sequence-clock-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "637a16e06412e523a1b2c6387f604848ac6fbbfc643ca03ded521bfd8f19484c",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/sequence-instances.js"
+    },
+    {
+      "id": "A042",
+      "severity": "P2",
+      "file": "static/js/sequence-instances.js",
+      "line": 12,
+      "title": "Sekans kopyası iç ses/video bağlantılarını kaybediyor",
+      "detail": "Sekans üyeleri yeni kimliklerle çoğaltılıyor fakat clipLinks çoğaltılmıyor; denemede iki sekans için yalnız tek A/V bağlantısı kaldı.",
+      "evidence": "js-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "637a16e06412e523a1b2c6387f604848ac6fbbfc643ca03ded521bfd8f19484c",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/sequence-instances.js"
+    },
+    {
+      "id": "A043",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 90,
+      "title": "CPU fallback çok sayıda görsel ayarı uygulamıyor",
+      "detail": "Canvas 2D yolu hue/grain/blur/temperature/lift/film/letterbox/visualizer/chroma ayarlarını atlıyor; zorlanmış CPU denemesinde dokuz efekt nötr piksellerle aynı kaldı.",
+      "evidence": "browser-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A044",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 85,
+      "title": "Ana WebGL çizicisi context kaybından toparlanmıyor",
+      "detail": "FrameCanvas contextlost/restored dinleyicisi kurmuyor; cihaz GPU bağlamını kaybedince renderer eski program/dokularla çizime devam ediyor ve yeniden kurulma yolu yok.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A045",
+      "severity": "P2",
+      "file": "static/js/video-clips-preview.js",
+      "line": 12,
+      "title": "Geçersiz klip kesiti düzeltildikten sonra önizleme açılmıyor",
+      "detail": "restore yalnız asset listesiyle önbellekleniyor; ilk trim doğrulaması hata verince ready=false kalıyor. Aynı dosyada trim düzeltmesi anahtarı değiştirmediği için hazırlık tekrar çalışmıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "97fa8780b3bb696798ad7be99dca5522c8f17d3b2b978fd7a8cd7aed5767952a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/video-clips-preview.js"
+    },
+    {
+      "id": "A046",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 210,
+      "title": "Görsel efekt texel boyutu yanlış hesaplanıyor",
+      "detail": "Normalize edilmiş rect.zw piksel boyutu sanılıyor. 100×100 görüntüde blur=1 beyaz merkez değerini 255’ten 41’e düşürdü; örnekleme uzaklığı tüm kare ölçeğine çıkıyor.",
+      "evidence": "browser-visual-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A047",
+      "severity": "P2",
+      "file": "static/js/preview-controls.js",
+      "line": 8,
+      "title": "Çok klipli önizlemede kalite seçimi gerçek kliplere uygulanmıyor",
+      "detail": "Kontrol eski tek-video setQuality yoluna gidiyor; ClipPreview decoder’ları high URL kullanmayı sürdürüyor ve adaptive sample çok klipte hemen dönüyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "ef859214fcf1f59dd474cb4bbc1239837a533aaeb769ead8ffe9410c29d84ee7",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/preview-controls.js"
+    },
+    {
+      "id": "A048",
+      "severity": "P2",
+      "file": "static/js/main.js",
+      "line": 937,
+      "title": "Geçerli bağımsız montaj istemcide render edilemiyor",
+      "detail": "Sunucu videoClips kaynaklarıyla background.asset olmadan çalışabilir; istemci render ve örnek kontrolleri koşulsuz background.asset ister, geçerli montajı engeller.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "bb8b78c7c1ec2b7f10abfeaf6529d4588759e968d0df5dac19063af5638d7a3a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/main.js"
+    },
+    {
+      "id": "A049",
+      "severity": "P2",
+      "file": "static/js/main.js",
+      "line": 891,
+      "title": "Durum sorgusundaki HTTP hatası render tamamlanmış sayılıyor",
+      "detail": "pollJob response.ok kontrol etmez; geçici 500 JSON’da state yoksa polling/busy temizlenir. Sunucu işi sürerken istemci işi kaybeder ve bölüm sırasını durdurur.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "bb8b78c7c1ec2b7f10abfeaf6529d4588759e968d0df5dac19063af5638d7a3a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/main.js"
+    },
+    {
+      "id": "A050",
+      "severity": "P2",
+      "file": "static/js/color-scope-editor.js",
+      "line": 35,
+      "title": "Renk scope’u canlı renk taslağını göstermiyor",
+      "detail": "Seçili klip scope hesaplaması LUT taslağını dikkate alır fakat colorDraft değerini atlar; renk kaydırıcısı sürüklenirken görüntü değişir, ölçüm eski renkte kalır.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "a35020ddac1dbede82581077a0472a503e396c37d6396f4a099ed46d5e3649ff",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/color-scope-editor.js"
+    },
+    {
+      "id": "A051",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 46,
+      "title": "Son kare zamanından önce görüntü tutuluyor",
+      "detail": "Hold eşiği videoLastFrame yerine end−1/fps kullanır. 30 fps, end=0,12 kesitinde gerçek son kare 0,10 iken 0,09’da held=true olur.",
+      "evidence": "js-more-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A052",
+      "severity": "P2",
+      "file": "static/js/lyric-renderer.js",
+      "line": 62,
+      "title": "Kapalı altyazı katmanında sonraki satır görünür oluyor",
+      "detail": "Relay preview bloğu lyrics.enabled kontrolünden önce çalışıyor; TFX-35 açıkken söz katmanı kapatılsa da yaklaşan satır çiziliyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "ee33d7d4e7ef9e3bd14e9003ecc5c2391bddfa56691d471ef0528e5d6d92248d",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/lyric-renderer.js"
+    },
+    {
+      "id": "A053",
+      "severity": "P1",
+      "file": "static/js/export-section-editor.js",
+      "line": 67,
+      "title": "Bölüm sırası ses dosyalarını sabitlemiyor",
+      "detail": "Ayarlar snapshot alınırken dosyalar her renderStudioProject çağrısında canlı engine.files üzerinden okunuyor; sıra arasında dosya değiştirmek eski ayarla yeni kaynak kullanan bölümler oluşturuyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "a406303c8bebec6feac8c1a0d8d2f26504c79e569c1100914bd5266c3d6993cc",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/export-section-editor.js"
+    },
+    {
+      "id": "A054",
+      "severity": "P1",
+      "file": "static/js/media-library.js",
+      "line": 70,
+      "title": "Kütüphaneden ses bağlama tüm undo geçmişini temizliyor",
+      "detail": "Yeni katman bağlarken loadAudio varsayılan preserveHistory=false ile çağrılıyor; aynı işin addAudio yolu history korurken kütüphane yolu önceki düzenlemeleri geri alınamaz yapıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "ae078114615c91d23a425a0feb3271b2fa1f73e32ef323c1a54fc6f4de80bde0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/media-library.js"
+    },
+    {
+      "id": "A055",
+      "severity": "P2",
+      "file": "static/js/creative-video-renderer.js",
+      "line": 7,
+      "title": "Saydam görüntü kenarlarında koyu saçak oluşuyor",
+      "detail": "İlk on video FX düz RGB/alpha’yı ayrı interpolate ediyor; saydam siyah ile opak renk örneklemesi premultiplied yapılmadığından renk koyulaşıp ikinci kez alpha ile çarpılıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "cd52a2f50f0c87d36b85d4234ccb9d041b80cbebe4238d30345201ff2b575c8c",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/creative-video-renderer.js"
+    },
+    {
+      "id": "A056",
+      "severity": "P2",
+      "file": "static/js/clip-transitions.js",
+      "line": 48,
+      "title": "Saydam geçişte önceki görüntü aniden kesiliyor",
+      "detail": "Fade/zoom/blur önceki kareyi tam opak bırakıp yeni kareyi üstüne ekliyor; yeni klibin maskeli/saydam alanında önceki görüntü geçiş boyunca sabit kalıp sonunda birden kayboluyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "ff6d004c0c8c5491e2a59da9df82a04f3a1663194457a04ce786e2cba27a14a0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/clip-transitions.js"
+    },
+    {
+      "id": "A057",
+      "severity": "P2",
+      "file": "static/js/clip-color-renderer.js",
+      "line": 83,
+      "title": "Büyük kaynak GPU sınırında CPU fallback seçilmiyor",
+      "detail": "Renk/perspektif yolları kaynak boyutunu MAX_TEXTURE_SIZE ile karşılaştırmıyor; GPU context varsa büyük geçerli kaynak hata/siyah kare üretiyor, kullanılabilir CPU yolu seçilmiyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "90201427330c122b0259e9f4046f7b9f8cfefc68f9434b9129ef5696bddaf744",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/clip-color-renderer.js"
+    },
+    {
+      "id": "A058",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 98,
+      "title": "Shader hatası ana çizicinin fallback yolunu kapatıyor",
+      "detail": "WebGL context alınmış fakat shader derlenememişse kurucu doğrudan throw ediyor; Canvas 2D kullanılabilir olsa da önizleme kurulumu tamamen başarısız oluyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A059",
+      "severity": "P2",
+      "file": "static/js/mouse.js",
+      "line": 2,
+      "title": "Basılı tutma düğmeleri klavyeyle çalışmıyor",
+      "detail": "Kare adımı düğmeleri yalnız pointerdown dinler; yerel Enter/Space click aktivasyonu hiçbir adım üretmez. Aynı yardımcı söz damgalama basılı tutma kontrolünde de kullanılır; frameNext denemesinde aktivasyon sayısı 0 oldu.",
+      "evidence": "browser-extra-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "8a38b79d86c17158426eae4d1e739ba2488ab0a0f72c81763a4d57121c28f498",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/mouse.js"
+    },
+    {
+      "id": "A060",
+      "severity": "P2",
+      "file": "static/js/mouse.js",
+      "line": 99,
+      "title": "Tuval sürüklemesi iptal edildiğinde de commit ediliyor",
+      "detail": "pointercancel/lostpointercapture release üzerinden commit yapıyor; Escape/blur/proje açma için rollback ve pointer kimliği kontrolü de yok. İptal edilen hareket proje düzenlemesine dönüşüyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "8a38b79d86c17158426eae4d1e739ba2488ab0a0f72c81763a4d57121c28f498",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/mouse.js"
+    },
+    {
+      "id": "A061",
+      "severity": "P3",
+      "file": "static/js/titles.js",
+      "line": 15,
+      "title": "Başlık satır genişliği gerçek metin genişliğiyle uyuşmuyor",
+      "detail": "Yerleşim tek tek karakter genişliklerini toplar, çizim ise birleşik metni işler. Kerning/şekillendirme içeren AV veya Arapça metin merkezleme ve satır kırılmasını yanlış hesaplar.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "c1614bced55730d5589aaf932e31c58cdae59df1effa7d6652aa7bde75276cf2",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/titles.js"
+    },
+    {
+      "id": "A062",
+      "severity": "P2",
+      "file": "static/js/subtitle-formats.js",
+      "line": 63,
+      "title": "Kelime zamanlı WebVTT çıktısı standarda aykırı",
+      "detail": "Cue başlangıç/bitişine eşit iç timestamp’ler ve ardışık kelimelerde yinelenen zamanlar yazılıyor; WebVTT iç işaretlerinin kesin artması ve cue sınırlarının içinde olması gerekir.",
+      "evidence": "Statik + WebVTT",
+      "verification": "Statik inceleme + biçim standardı",
+      "source_sha256": "60a1b76743fceb967d72a28f8228298044fef30d865ac2a8f8fba20a62c0e15a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/subtitle-formats.js"
+    },
+    {
+      "id": "A063",
+      "severity": "P2",
+      "file": "static/js/subtitle-formats.js",
+      "line": 39,
+      "title": "WebVTT position hizalama eki sessizce kayboluyor",
+      "detail": "position:45%,line-right gibi geçerli kutu hizalaması x=45 olarak alınır fakat line-right atılır; metin hizalaması bunu telafi etmez ve kutu yanlış yere yerleşir.",
+      "evidence": "Statik + WebVTT",
+      "verification": "Statik inceleme + biçim standardı",
+      "source_sha256": "60a1b76743fceb967d72a28f8228298044fef30d865ac2a8f8fba20a62c0e15a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/subtitle-formats.js"
+    },
+    {
+      "id": "A064",
+      "severity": "P3",
+      "file": "static/js/subtitle-formats.js",
+      "line": 11,
+      "title": "Geçerli WebVTT karakter referansları ham kalıyor",
+      "detail": "Entity haritası sınırlı ve büyük/küçük harfe duyarlı. &copy;/&euro;/&AMP; gibi referanslar düz metin olarak görünür, veri kaybı uyarısı da üretilmez.",
+      "evidence": "Statik + WebVTT",
+      "verification": "Statik inceleme + biçim standardı",
+      "source_sha256": "60a1b76743fceb967d72a28f8228298044fef30d865ac2a8f8fba20a62c0e15a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/subtitle-formats.js"
+    },
+    {
+      "id": "A065",
+      "severity": "P3",
+      "file": "static/js/video-controls.js",
+      "line": 395,
+      "title": "Görünür özel renk kontrollerinin erişilebilir adı yok",
+      "detail": "vfxChromaCustomColor ve vfxBassCustomColor alanlarında label/aria-label bulunmuyor; ekran okuyucu iki farklı renk seçicinin amacını ayıramıyor.",
+      "evidence": "browser-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "adab111ee6ae48113ea7adb0027861a7f4eb1e4160fff30eaec08d47da74aaa9",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/video-controls.js"
+    },
+    {
+      "id": "A066",
+      "severity": "P3",
+      "file": "static/css/style.css",
+      "line": 936,
+      "title": "Odak çerçevesi tanımsız renk değişkeni kullanıyor",
+      "detail": "Loudness/warp/spectral canvas focus outline var(--accent) okuyor fakat bu token tanımlı değil; klavye odak göstergesi için bildirilen stil geçersiz kalıyor.",
+      "evidence": "browser-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "0e4b99c147a2ac2899c0c045e2d86e0ae6323a646b9b7cfb16bc3aa16b023463",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/css/style.css"
+    },
+    {
+      "id": "A067",
+      "severity": "P3",
+      "file": "static/js/inspector-tools.js",
+      "line": 62,
+      "title": "Araç araması tam eşleşmeyi geriye atıyor",
+      "detail": "warp aramasında gerçek warp aracı yerine mid warp anahtar sözcüklü reactive preset sonucu önce geliyor; mevcut arama UI testi de bu sıralamada başarısız.",
+      "evidence": "Tarayıcı + test",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "73fcf19af895d6757d9f5b66c7bcca95b5090d5d01a77e5c3dd91939b02a5e17",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/inspector-tools.js"
+    },
+    {
+      "id": "A068",
+      "severity": "P3",
+      "file": "tests/test_workspace_ui.py",
+      "line": 1036,
+      "title": "Ses zarfı test düzeneği güncel motor sözleşmesini kurmuyor",
+      "detail": "Dört test AudioEngine prototipinden nesne üretip routing bağımlılığını kurmuyor; scheduleEnvelopes routing.schedule çağrısında TypeError veriyor. Tek test bakım sorunu olarak sayıldı.",
+      "evidence": "Python test günlüğü",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "d15da0ee6c7b6b10ef8085b1823dfd582433ec2705744e3ff32fdf773901ef02",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/tests/test_workspace_ui.py"
+    },
+    {
+      "id": "A069",
+      "severity": "P2",
+      "file": "static/js/creative-geometry-shader.js",
+      "line": 6,
+      "title": "VFX-23/26 GPU ve CPU sonuçları eşleşmiyor",
+      "detail": "Mevcut parity testi yeniden çalıştırılınca izin verilen kanal farkı 4 yerine VFX-23’te 255, VFX-26’da 26 bulundu; donanıma göre görünüm değişiyor.",
+      "evidence": "targeted-python.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "1b91f4c70b5a3a693b3df3b502f7b8152342e64df01073b1b155df2abcc61a69",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/creative-geometry-shader.js"
+    },
+    {
+      "id": "A070",
+      "severity": "P2",
+      "file": "sample_api.py",
+      "line": 21,
+      "title": "Örnek render aralığı ana montajı dikkate almıyor",
+      "detail": "Süre eski main trim alanından hesaplanıyor; 30 sn’ye konmuş 5 sn’lik montajın 25–30 sn örneği geçerli proje aralığına rağmen reddediliyor.",
+      "evidence": "python-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "8ec40a68a910e780a3d72305b87f1d729bf256f215e4f699ff740a679ce86b75",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/sample_api.py"
+    },
+    {
+      "id": "A071",
+      "severity": "P2",
+      "file": "sample_api.py",
+      "line": 50,
+      "title": "Örnek render URL ön planını sessizce atlıyor",
+      "detail": "overlay.url dolu asset boşken örnek yolu overlay=None ile devam eder; tam render yükleme gerektiren açık hata verir. Örnek nihai çıktı vaadiyle farklı görüntü gösterir.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "8ec40a68a910e780a3d72305b87f1d729bf256f215e4f699ff740a679ce86b75",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/sample_api.py"
+    },
+    {
+      "id": "A072",
+      "severity": "P2",
+      "file": "sample_api.py",
+      "line": 120,
+      "title": "Çalışan örneği silme tamamlanınca kaydı silmiyor",
+      "detail": "DELETE yalnız cancelling yapıyor; worker sonunda job/temp saklanmaya devam ediyor. Kapatılan sekiz örnek 30 dakika dolana kadar yenilerini 429 ile engelleyebiliyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "8ec40a68a910e780a3d72305b87f1d729bf256f215e4f699ff740a679ce86b75",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/sample_api.py"
+    },
+    {
+      "id": "A073",
+      "severity": "P2",
+      "file": "app.py",
+      "line": 342,
+      "title": "Thread başlatma hatası işlem slotunu kilitli bırakıyor",
+      "detail": "Semaphore alındıktan sonra Thread.start korumalı değil; thread oluşturma RuntimeError verirse worker finally çalışmaz ve slot servis ömrü boyunca dolu kalır.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4f636317baf00c31c27bded4f76f45ac907d8c555f7d311ffbb4ac10ca47966f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/app.py"
+    },
+    {
+      "id": "A074",
+      "severity": "P2",
+      "file": "app.py",
+      "line": 983,
+      "title": "YouTube video hazırlığı medya kilidini kullanmıyor",
+      "detail": "Yerel/URL import MEDIA_SLOT kullanırken YouTube prepare_asset doğrudan çalışır; aynı içerik eşzamanlı hazırlanırsa hedef klasör exists/rename yarışı ikinci işi hata durumuna düşürür.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4f636317baf00c31c27bded4f76f45ac907d8c555f7d311ffbb4ac10ca47966f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/app.py"
+    },
+    {
+      "id": "A075",
+      "severity": "P2",
+      "file": "app.py",
+      "line": 898,
+      "title": "YouTube araması ağ beklemesiyle bütün servis işçilerini tutabiliyor",
+      "detail": "Senkron arama yolu socket_timeout/toplam süre veya eşzamanlı arama sınırı koymuyor; yavaş ağdaki sekiz arama sekiz Waitress işçisini meşgul edip yerel düzenleyici API’lerini durdurabiliyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4f636317baf00c31c27bded4f76f45ac907d8c555f7d311ffbb4ac10ca47966f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/app.py"
+    },
+    {
+      "id": "A076",
+      "severity": "P2",
+      "file": "static/js/audio-warp-editor.js",
+      "line": 21,
+      "title": "Bazı istemci iptalleri sunucu işlemini durdurmuyor",
+      "detail": "Warp/tracking/align için AbortController yalnız HTTP bekleyişini keser; backend iptal sinyali almaz ve MEDIA_SLOT tamamlanana kadar dolu kalır. Arayüz iptal edildi derken yeni işler reddedilir.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "2dedb1f105f4d53cb5ba03b47b7f854f737e0f3c850f8b04c8589e22437e6060",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio-warp-editor.js"
+    },
+    {
+      "id": "A077",
+      "severity": "P2",
+      "file": "media_assets.py",
+      "line": 160,
+      "title": "Uzak medya indirmesinin 90 sn sınırı gerçek deadline değil",
+      "detail": "Süre yalnız 64 KiB chunk tesliminden sonra ölçülür; 20 sn read timeout’undan hızlı küçük parçalar gönderen kaynak chunk’ı doldurmadan 90 sn’yi aşabilir, yönlendirmeler de aynı deadline ile sınırlandırılmaz.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "bda1a56156bf6beb5e5038141a1d08d09e45a02e5d7aa5d1a20972c7f98eb89b",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/media_assets.py"
+    },
+    {
+      "id": "A078",
+      "severity": "P2",
+      "file": "app.py",
+      "line": 659,
+      "title": "Render çıktı dosyası kimliği 32 bite düşürülüyor",
+      "detail": "Farklı tam iş kimliklerinin ilk sekiz hex hanesi aynıysa aynı MP4 yolu kullanılıyor; sonraki çıktı öncekini ezer ve önceki indirme bağlantısı yeni içeriği verir.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "4f636317baf00c31c27bded4f76f45ac907d8c555f7d311ffbb4ac10ca47966f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/app.py"
+    },
+    {
+      "id": "A079",
+      "severity": "P2",
+      "file": "static/js/frame-renderer.js",
+      "line": 31,
+      "title": "İstemci çıktı boyutu sunucu sınırını uygulamıyor",
+      "detail": "Geçerli 8192×2 kaynak ve 1080/source oranı 4.423.680×1080 tuval isteği üretir. Sunucu bunu reddederken tarayıcı önce dev tuval/doku ayırmaya çalışır.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "b340fdd39c58211c821a346a7c6674fb0fef672806783404268c14956c84241a",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/frame-renderer.js"
+    },
+    {
+      "id": "A080",
+      "severity": "P2",
+      "file": "static/js/overlay.js",
+      "line": 109,
+      "title": "Ön plan önizlemesi ve render farklı kaynak seçiyor",
+      "detail": "Hem asset hem url olan geçerli kayıtta önizleme URL’yi, render asset dosyasını seçer. Eski/uyuşmayan URL bulunan proje ekranda başka, MP4’te başka görsel kullanır.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "abc3ec582af71bbf74b111000e091dde7c1fb1ca478d6ea1ea5c4d77cc6490ea",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/overlay.js"
+    },
+    {
+      "id": "A081",
+      "severity": "P2",
+      "file": "static/js/visual-layer-media.js",
+      "line": 15,
+      "title": "Başarısız sahne kaynağı yüklemesi tekrar denenmiyor",
+      "detail": "Hatalı entry aynı type/asset anahtarında tutuluyor; restore yeniden çağrılsa da load çalışmıyor. Geçici ağ hatası sonrası katman projeden çıkarılıp yeniden eklenmeden açılamıyor; font hata yolu da pending durumunda takılıyor.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "933a49c136fdc9daae59a860d14c3d8d974ce694425971996edc9d949f49bb13",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/visual-layer-media.js"
+    },
+    {
+      "id": "A082",
+      "severity": "P1",
+      "file": "static/js/ripple-editing.js",
+      "line": 99,
+      "title": "Ripple tek arka plan videosunu siliyor",
+      "detail": "videoEditTimeline tek arka planı boş liste olarak döndürüyor. Video şeridi seçili ripple işleminde hiçbir klip üretilmeyip background.asset temizleniyor; denemede arka plan kayboldu.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "15ca11a5ba57db48f7f23b55e4439743eddb53f816cb2e122a535a0cfa063487",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/ripple-editing.js"
+    },
+    {
+      "id": "A083",
+      "severity": "P2",
+      "file": "static/js/project.js",
+      "line": 263,
+      "title": "Altyazı metin sınırı sunucu ve istemcide farklı",
+      "detail": "Python 300 emoji içeren satırı kabul ediyor, JavaScript UTF-16 uzunluğu 600 olduğu için reddediyor. Sunucudan/paketten gelen geçerli görünen proje tarayıcıda açılamayabiliyor.",
+      "evidence": "extra-evidence.json + python-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "fabcd1964a6ed28a403ec29736075114cbe568f278c79b7603ee28fc5166ddeb",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/project.js"
+    },
+    {
+      "id": "A084",
+      "severity": "P2",
+      "file": "static/js/multicam.js",
+      "line": 39,
+      "title": "Çok kamera uygulaması eski sekans üyelerini bırakıyor",
+      "detail": "Mevcut video sekansa aitken kamera kurgusu video kimliklerini tamamen değiştiriyor fakat sekans üyeliği temizlenmiyor/taşınmıyor; Uygula eksik sekans üyesi hatasıyla reddediliyor.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "d8cacd5081e977e6c47322e982f4d9aea30d30a2e7b0c1547a4ed2b222b12b00",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/multicam.js"
+    },
+    {
+      "id": "A085",
+      "severity": "P2",
+      "file": "static/js/ass-subtitles.js",
+      "line": 35,
+      "title": "ASS yumuşak satır sonu zorunlu satır sonuna dönüşüyor",
+      "detail": "WrapStyle=0 altında küçük harfli ters eğik çizgi+n boşluk olmalıdır; importer bunu her zaman yeni satıra çeviriyor ve WrapStyle etkisini sessizce kaybediyor.",
+      "evidence": "extra-evidence.json + ASS",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "a14c1d13e233de7faa94d0df5cb3c98085e43e2d36e2b1bf697f8e1ebf4121cf",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/ass-subtitles.js"
+    },
+    {
+      "id": "A086",
+      "severity": "P3",
+      "file": "static/js/ass-subtitles.js",
+      "line": 48,
+      "title": "ASS normal/hafif font ağırlığı kalınlaştırılıyor",
+      "detail": "B100 ve B400 gibi açık ağırlıklar da sıfır olmadığı için bold=true oluyor. Hafif veya normal yazı kalınlaşır; indirgeme uyarısı verilmez.",
+      "evidence": "extra-evidence.json + ASS",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "a14c1d13e233de7faa94d0df5cb3c98085e43e2d36e2b1bf697f8e1ebf4121cf",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/ass-subtitles.js"
+    },
+    {
+      "id": "A087",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 387,
+      "title": "Comp take’i değişince hazırlanmış çıktı bayat kalıyor",
+      "detail": "Dosya değiştirme koruması warp/sekans kaynaklarında var, comp take’lerinde yok. Farklı kaynak kabul ediliyor fakat comp çıktısı yeniden üretilmiyor ve eski take sesini çalmaya devam ediyor.",
+      "evidence": "extra-evidence.json + statik",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A088",
+      "severity": "P1",
+      "file": "static/js/media-library.js",
+      "line": 65,
+      "title": "Bekleyen ses içe aktarma yeni projeye katman ekliyor",
+      "detail": "Çoklu import döngüsü proje açılınca iptal edilmiyor/sürüm kontrol etmiyor. Kontrollü denemede yeni proje üç kanalla açıldıktan sonra eski importun devamı dördüncü kanalı ekledi.",
+      "evidence": "browser-extra-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "ae078114615c91d23a425a0feb3271b2fa1f73e32ef323c1a54fc6f4de80bde0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/media-library.js"
+    },
+    {
+      "id": "A089",
+      "severity": "P2",
+      "file": "static/js/media-library.js",
+      "line": 70,
+      "title": "Başarısız kütüphane yüklemesi boş kanal bırakıyor",
+      "detail": "Kanal dosyadan önce oluşturuluyor; yükleme hatasında rollback yapılmıyor. Denemede başarısız tek dosya üç kanalı dörde çıkardı; tekrarlar 32 kanal limitini tüketiyor.",
+      "evidence": "browser-extra-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "ae078114615c91d23a425a0feb3271b2fa1f73e32ef323c1a54fc6f4de80bde0",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/media-library.js"
+    },
+    {
+      "id": "A090",
+      "severity": "P3",
+      "file": "static/js/title-editor.js",
+      "line": 28,
+      "title": "Başlık metnini düzenleme klavye odağını kaybettiriyor",
+      "detail": "Her değişiklikte run alanları yeniden kuruluyor ve odak geri taşınmıyor. Denemede değişiklik yapılan input DOM’dan çıktı, activeElement BODY oldu; sıradaki alanı Tab ile düzenleme akışı bozuldu.",
+      "evidence": "browser-extra-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "d850ed0b63608874dfcc273726ed534c863dacdfd6c7f3a5f22695cfd125cff9",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/title-editor.js"
+    },
+    {
+      "id": "A091",
+      "severity": "P1",
+      "file": "static/js/audio.js",
+      "line": 387,
+      "title": "Kaydedilmiş comp/mikrofon WAV yeniden bağlanınca trim siliniyor",
+      "detail": "Üretilen dosyanın sabit mtime=0 normalizasyonuna comp/mikrofon çıktıları dahil değil. Aynı dosyanın disk mtime’si farklıysa yeni kaynak sayılıyor; denemede 0,02–0,08 trim 0–tam kaynak oldu.",
+      "evidence": "browser-extra-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A092",
+      "severity": "P2",
+      "file": "static/js/video.js",
+      "line": 156,
+      "title": "Eski tek-video isteği yeni montajın durumunu eziyor",
+      "detail": "Montaj yoluna geçiş loadId değerini artırmıyor. Bekleyen tek-video fetch tamamlanınca yeni montajın info/src kaydı eski asset ile değişiyor; kontrollü yarışta beklenen B yerine A kaldı.",
+      "evidence": "browser-races-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "9023f8b33f5b9eaa89c3614b663f24159ac0b7eb5bfb3c89d8529aa2aafdb3d2",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/video.js"
+    },
+    {
+      "id": "A093",
+      "severity": "P2",
+      "file": "package_api.py",
+      "line": 91,
+      "title": "Açık indirmede silinen geçici dosya Windows’ta kalıyor",
+      "detail": "Paket/örnek silme veya expiry, send_file okuyucusu hâlâ açıkken cleanup çağırabiliyor. Windows silmeyi reddeder, ignore_cleanup_errors hatayı yutar ve kayıt silindiği için tekrar temizleme olmaz; küçük dosyayla klasörün kaldığı doğrulandı.",
+      "evidence": "cleanup-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "41ee481f3d5b8edad53efb27b9de3f1be838bcd564f01b558437626c0460e554",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/package_api.py"
+    },
+    {
+      "id": "A094",
+      "severity": "P2",
+      "file": "static/js/reframe.js",
+      "line": 10,
+      "title": "Otomatik kadraj perspektifin açtığı boşluğu hesaba katmıyor",
+      "detail": "Kaynak kapsamı yalnız dikdörtgen videoRect üzerinden sınırlandırılıyor. Kaynağı merkezde %50’ye daraltan geçerli perspektifte üretilen zoom=1 kalıyor; kaynak dışı siyah kenarlar doldurulmuyor.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "9cfe9e01d1823975e127dcd25e0a0bc4b3fc8dd69151792a7948cce91f0ee6f5",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/reframe.js"
+    },
+    {
+      "id": "A095",
+      "severity": "P2",
+      "file": "static/js/lyrics.js",
+      "line": 71,
+      "title": "Çok kısa uç altyazı parçası bütün dışa aktarımı durduruyor",
+      "detail": "Geçerli kaynak sözünün montaj sonunda yalnız 5 ms bölümü görünürse projectTimedLyrics/sliceTimedLyric hata veriyor; tek uç parçayı atlamak yerine tüm WebVTT/ASS ihracı başarısız oluyor.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "7d5120a3b148f8f3da6c84f1bf6b56acb5fd1444c6a020f1a398168d06653848",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/lyrics.js"
+    },
+    {
+      "id": "A096",
+      "severity": "P2",
+      "file": "static/js/audio.js",
+      "line": 1241,
+      "title": "Ses buffer’ı değişse de aynı karede eski bas analizi kullanılıyor",
+      "detail": "visualSignal dış önbelleği yalnız proje nesnesi ve kareyi kontrol ediyor; spectral işlemi bitip sourceBuffer değişince bu anahtarlar aynı kalabiliyor. Denemede sessiz buffer’a geçişten sonra 0,3955 bas kaldı, zorla yenilemede 0 oldu.",
+      "evidence": "browser-races-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "4809d906d5ed4f7d5d39bd1f9e099404332438b893029acbf4f93da87832f25f",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/audio.js"
+    },
+    {
+      "id": "A097",
+      "severity": "P2",
+      "file": "static/js/visual-signal.js",
+      "line": 52,
+      "title": "Ters fazlı stereo ses görselleştiricide yok oluyor",
+      "detail": "FFT öncesi L/R örnekleri toplanıyor; sağ kanal solun tersi olan duyulabilir stereo kaynak sıfıra iptal oluyor. Denemede aynı enerjide spektrum tepesi 255 yerine 0 çıktı.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "1d1254eac13af81ea921601069e903119d96818f051a762715c9170a99aa30bc",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/visual-signal.js"
+    },
+    {
+      "id": "A098",
+      "severity": "P2",
+      "file": "static/js/lyric-review.js",
+      "line": 56,
+      "title": "Söz inceleme döngüsü yanlış tekrar kesitine atlıyor",
+      "detail": "Tekrarlanan ana kaynakta en yakın söz aralığı yerine klip başlangıcı seçiliyor. İmleç 7 sn, sözün tekrarları 2 ve 12 sn iken daha yakın 2 yerine 12 sn’ye atlandı.",
+      "evidence": "extra-evidence.json",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "eafa002064ad473ccfb3931f87c78366f39140ea0b7fdebe539fac91ffe30f20",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/lyric-review.js"
+    },
+    {
+      "id": "A099",
+      "severity": "P2",
+      "file": "canvas_render.py",
+      "line": 254,
+      "title": "Render başlangıcında iptal isteği işleme ulaşmıyor",
+      "detail": "İptal izleyicisi createExportScene tamamlandıktan sonra başlıyor. Font/overlay yüklemesi bu aşamada sınırsız bekleyebilir; kullanıcı iptal etse de page.evaluate dönmediği için iş ve RENDER_SLOT serbest kalmaz.",
+      "evidence": "Statik",
+      "verification": "Statik inceleme",
+      "source_sha256": "0c9255fffa5575527a95f24a9c4cf57be9c3a6dbd13dff2cebd88015981a8776",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/canvas_render.py"
+    },
+    {
+      "id": "A100",
+      "severity": "P3",
+      "file": "static/js/lyrics.js",
+      "line": 116,
+      "title": "Altyazı diline bakılmadan Türkçe harf dönüşümü yapılıyor",
+      "detail": "İngilizce gibi desteklenen dil şeritlerinde de uppercase i→İ, lowercase I→ı uygular. en şeridindeki indigo metni INDIGO yerine İNDİGO olur.",
+      "evidence": "browser-races-evidence.log",
+      "verification": "Kontrollü deney / test",
+      "source_sha256": "7d5120a3b148f8f3da6c84f1bf6b56acb5fd1444c6a020f1a398168d06653848",
+      "absolute_path": "C:/Users/Fatma/Desktop/file/projects/ambientmusic/web/static/js/lyrics.js"
+    }
+  ],
+  "evidence": {
+    "js-evidence.json": [
+      {
+        "name": "track count after defaults",
+        "result": 34
+      },
+      {
+        "name": "sequence copies omit internal A/V link",
+        "result": {
+          "sequences": 2,
+          "links": 1
+        }
+      },
+      {
+        "name": "draft write succeeds but read rejects over 2 MiB",
+        "result": {
+          "bytes": 2164695,
+          "wrote": true,
+          "read": "Taslak okunamadı."
+        }
+      }
+    ],
+    "js-more-evidence.json": [
+      {
+        "name": "pasted pair keeps detector on original track",
+        "result": {
+          "originalDetector": "t:rain",
+          "newIds": [
+            "track_f4f23e873b22465ca1a76b40ce0904bd",
+            "track_d9849830b7054963b47205febc45dd2b"
+          ],
+          "pastedDetector": "t:rain"
+        }
+      },
+      {
+        "name": "disabled spectral draft still processes audio",
+        "result": {
+          "enabled": false,
+          "input": 0.9999936819076538,
+          "output": 0.0009999936446547508
+        }
+      },
+      {
+        "name": "last frame held before its source timestamp",
+        "result": {
+          "timing": {
+            "position": 0.09,
+            "rate": 1,
+            "period": 0.125,
+            "envelope": 1,
+            "start": 0,
+            "end": 0.12,
+            "seekDriven": false,
+            "held": true,
+            "ended": false,
+            "valid": true
+          },
+          "lastFrame": 0.1
+        }
+      },
+      {
+        "name": "UI precision LUT saved JSON exceeds own import cap",
+        "result": {
+          "prettyJsonBytes": 1956512,
+          "importCap": 1048576,
+          "compactBytes": 978772
+        }
+      }
+    ],
+    "python-evidence.json": [
+      {
+        "name": "sample rejects valid montage range",
+        "error": "ValueError: Örnek aralığı proje dışında."
+      },
+      {
+        "name": "camera member aliases audio",
+        "result": {
+          "audio": true,
+          "camera": true,
+          "member_count": 2,
+          "expected_independent_members": 3
+        }
+      },
+      {
+        "name": "case insensitive audio members collide",
+        "result": {
+          "accepted": [
+            "main",
+            "rain",
+            "fire",
+            "MAIN"
+          ],
+          "same_file": true,
+          "first_bytes": "b"
+        }
+      },
+      {
+        "name": "linked video audio speed multiplies two rates",
+        "result": {
+          "video_duration": 20.0,
+          "extracted_audio_duration": 10.0
+        }
+      },
+      {
+        "name": "server accepts emoji text browser rejects",
+        "result": 1
+      },
+      {
+        "name": "track ID toString",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "toString"
+        ]
+      },
+      {
+        "name": "track ID background",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "background"
+        ]
+      },
+      {
+        "name": "track ID lyrics",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "lyrics"
+        ]
+      },
+      {
+        "name": "track ID output",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "output"
+        ]
+      },
+      {
+        "name": "track ID videofx",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "videofx"
+        ]
+      },
+      {
+        "name": "track ID yt",
+        "result": [
+          "main",
+          "rain",
+          "fire",
+          "yt"
+        ]
+      }
+    ],
+    "extra-evidence.json": [
+      {
+        "name": "ripple erases implicit background",
+        "result": {
+          "background": "",
+          "clips": 0
+        }
+      },
+      {
+        "name": "Unicode lyric server client disagreement 300 emoji",
+        "error": "Söz satırı boş veya çok uzun."
+      },
+      {
+        "name": "multicam cannot replace sequenced video",
+        "error": "Sekans üyesi eksik veya başka bir sekansa ait."
+      },
+      {
+        "name": "huge output geometry accepted by client",
+        "result": {
+          "width": 4423680,
+          "height": 1080
+        }
+      },
+      {
+        "name": "ASS soft newline forced break and light font bold",
+        "result": {
+          "lines": [
+            {
+              "id": "l_5612e64b536f4976810d59faaa8f4715",
+              "text": "one\ntwo",
+              "start": 0,
+              "end": 2,
+              "confidence": null,
+              "review": false,
+              "cueStyle": {
+                "align": "center",
+                "anchor": "bottom",
+                "x": 50,
+                "y": 98.61111111111111,
+                "bold": true
+              }
+            }
+          ],
+          "warnings": [
+            "ASS stili bulunamadı: Default"
+          ]
+        }
+      },
+      {
+        "name": "comp accepts replacement of registered take",
+        "result": {
+          "newTake": "different.wav",
+          "output": "out.wav"
+        }
+      },
+      {
+        "name": "project subtitle export aborts on 5 ms tail",
+        "error": "Kesim söz satırında 0,01 saniyeden kısa bir parça bırakıyor."
+      },
+      {
+        "name": "antiphase bass disappears",
+        "result": {
+          "inPhasePeak": 255,
+          "antiPhasePeak": 0
+        }
+      },
+      {
+        "name": "reframe ignores inset perspective in coverage bounds",
+        "result": {
+          "perspective": [
+            [
+              25,
+              25
+            ],
+            [
+              75,
+              25
+            ],
+            [
+              75,
+              75
+            ],
+            [
+              25,
+              75
+            ]
+          ],
+          "zoom": 1
+        }
+      },
+      {
+        "name": "review chooses farther repeated-source occurrence",
+        "result": {
+          "cursor": 7,
+          "actualSeek": 12,
+          "nearerOccurrence": 2,
+          "fartherOccurrence": 12
+        }
+      }
+    ],
+    "boundary-evidence.json": [
+      {
+        "name": "valid project rejected by Flask form limit",
+        "result": {
+          "bytes": 1086335,
+          "status": 413,
+          "message": {
+            "message": "Dosya cok buyuk (sinir 512 MB).",
+            "status": "error"
+          },
+          "configured_limit": 500000
+        }
+      },
+      {
+        "name": "dependency error logs credentials",
+        "result": {
+          "sentinel_logged": true
+        }
+      },
+      {
+        "name": "actual source duration not checked before decode",
+        "result": {
+          "declared_duration": 1,
+          "decoded_duration": 10.0
+        }
+      }
+    ],
+    "cleanup-evidence.json": {
+      "folder_left_after_cleanup": true,
+      "file_left_after_cleanup": true,
+      "reader_open": true
+    },
+    "sequence-clock-evidence.json": {
+      "originalOffset": 2,
+      "cloneOffset": 6,
+      "standardCurve": [
+        [
+          6,
+          0
+        ],
+        [
+          8,
+          100
+        ]
+      ],
+      "effectCurve": [
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          100
+        ]
+      ],
+      "expectedEffectCurve": [
+        [
+          6,
+          0
+        ],
+        [
+          8,
+          100
+        ]
+      ]
+    },
+    "browser-more-evidence.log": {
+      "headroom": {
+        "before": 1.5,
+        "after": 1,
+        "right": 0.5
+      },
+      "dynamicMute": {
+        "source": true,
+        "mutedButtons": 0,
+        "soloButtons": 0
+      },
+      "delayedOpen": {
+        "intervening": 37,
+        "final": 100
+      },
+      "bassButton": {
+        "hit": 1,
+        "envelope": 0,
+        "strength": 0
+      },
+      "dynamicsRetry": {
+        "gain": 0,
+        "sameNode": true
+      },
+      "invalidAudio": {
+        "settled": "still pending after 2 s",
+        "previous": "main.wav",
+        "connected": false,
+        "projectSource": "main.wav",
+        "duration": 0
+      }
+    },
+    "browser-evidence.log": {
+      "unlabelled": [
+        {
+          "id": "",
+          "class": "lut-file sr-only",
+          "type": "file"
+        },
+        {
+          "id": "",
+          "class": "library-files sr-only",
+          "type": "file"
+        },
+        {
+          "id": "",
+          "class": "visual-files sr-only",
+          "type": "file"
+        },
+        {
+          "id": "vfxChromaCustomColor",
+          "class": "",
+          "type": "color"
+        },
+        {
+          "id": "vfxBassCustomColor",
+          "class": "",
+          "type": "color"
+        }
+      ],
+      "undefinedCssVariables": [
+        "var(--fill)",
+        "var(--rhythm-origin)",
+        "var(--rhythm-bar)",
+        "var(--rhythm-step)",
+        "var(--curve-color)",
+        "var(--accent)"
+      ],
+      "initialScripts": 194,
+      "cpuIgnored": [
+        "hueShift",
+        "grain",
+        "blur",
+        "temperature",
+        "liftShadows",
+        "filmOverlay",
+        "letterbox",
+        "vizType",
+        "chromaKey"
+      ],
+      "audioPresetNode": true
+    },
+    "browser-visual-evidence.log": {
+      "blurTexel": {
+        "neutral": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "blur": [
+          41,
+          41,
+          41,
+          255
+        ],
+        "rect": [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      "cancelledOpenDiscardsDraft": {
+        "rejected": true,
+        "draftRetained": false
+      },
+      "prototypeTrack": {
+        "accepted": true,
+        "waveType": "function",
+        "regionType": "function"
+      }
+    },
+    "browser-extra-evidence.log": {
+      "keyboard": {
+        "activations": 0
+      },
+      "imports": {
+        "before": 3,
+        "afterFailure": 4,
+        "afterOpen": 3,
+        "afterLateImport": 4
+      },
+      "compReconnect": {
+        "before": {
+          "start": 0.02,
+          "end": 0.08
+        },
+        "after": {
+          "start": 0,
+          "end": null,
+          "mtime": 123456
+        }
+      },
+      "titleFocus": {
+        "oldConnected": false,
+        "active": "BODY"
+      }
+    },
+    "browser-races-evidence.log": {
+      "reactiveCache": {
+        "before": 0.3955182072829132,
+        "afterBufferChange": 0.3955182072829132,
+        "fresh": 0,
+        "sameObject": true
+      },
+      "staleVideo": {
+        "initialToken": 1,
+        "clipToken": 1,
+        "expectedAsset": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "actualAsset": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "englishCase": {
+        "language": "en",
+        "input": "indigo",
+        "actual": "İNDİGO",
+        "expected": "INDIGO"
+      }
+    },
+    "browser-final-evidence.log": {
+      "subtitleCancel": {
+        "initialDraft": true,
+        "draftAfterCancel": false,
+        "draftAfterReadCompletes": true
+      }
+    }
+  }
+}

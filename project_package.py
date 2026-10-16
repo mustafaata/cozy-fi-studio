@@ -5,11 +5,12 @@ from pathlib import Path
 import stat
 import re
 import zipfile
+import uuid
 
-from project import TRACK_IDS, validate_project
+from project import SCHEMA, TRACK_IDS, validate_project
 
 MAX_PACKAGE_BYTES = 500 * 1024 * 1024
-MAX_JSON_BYTES = 2 * 1024 * 1024
+MAX_JSON_BYTES = SCHEMA['limits']['projectJsonBytes']
 CHUNK = 1024 * 1024
 
 
@@ -27,6 +28,11 @@ def members(project):
         if not clip["asset"]:
             raise ValueError("Klip kaynağı eksik.")
         result.add(f"media/clip_{index:03d}")
+    for index, layer in enumerate(project['visualLayers']):
+        if layer['type'] in ('video', 'image'):
+            result.add(f'media/visual_{index:03d}')
+    for index, angle in enumerate(project['cameraAngles']):
+        result.add(f'media/camera_{index:03d}')
     return result
 
 
@@ -62,7 +68,8 @@ def unpack_package(source, directory):
             infos = archive.infolist()
             names = [i.filename for i in infos]
             allowed = lambda name: name in ("manifest.json", "project.json") or re.fullmatch(r"media/[a-zA-Z0-9_-]{1,64}", name)
-            if (len(names) > 101 or len(names) != len(set(names)) or not all(allowed(name) for name in names) or
+            max_members = 4 + SCHEMA['limits']['tracks'] + SCHEMA['limits']['clips'] + SCHEMA['limits']['visualLayers'] + SCHEMA['limits']['cameraAngles']
+            if (len(names) > max_members or len(names) != len(set(names)) or not all(allowed(name) for name in names) or
                     not {"manifest.json", "project.json"} <= set(names)):
                 raise ValueError("Paket dosya listesi geçersiz.")
             if sum(i.file_size for i in infos) > MAX_PACKAGE_BYTES:
@@ -84,7 +91,8 @@ def unpack_package(source, directory):
                 info = archive.getinfo(name)
                 if type(spec["size"]) is not int or spec["size"] != info.file_size or info.file_size <= 0:
                     raise ValueError("Paket dosya boyutu eşleşmiyor.")
-                target = directory / ("project.json" if name == "project.json" else name.split("/")[1])
+                # ZIP member names are case-sensitive; the host filesystem may not be.
+                target = directory / ("project.json" if name == "project.json" else uuid.uuid4().hex)
                 digest, size = hashlib.sha256(), 0
                 with archive.open(name) as entry, target.open("wb") as output:
                     for chunk in iter(lambda: entry.read(CHUNK), b""):

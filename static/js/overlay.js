@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clearOverlayBtn');
   const nameLabel = document.getElementById('overlayName');
   const controlsPanel = document.getElementById('overlayControls');
+  let uploadEpoch=0;
+  document.addEventListener('project-will-open',()=>{uploadEpoch++;});
 
   const xSlider = document.getElementById('overlayX');
   const xOut = document.getElementById('overlayXOut');
@@ -33,15 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function draw() {
+  function draw(notify=true) {
     syncCanvasSize();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const overlay = projectStore.state?.overlay;
     if (!overlay || (!overlay.asset && !overlay.url) || !imgLoaded || !currentImg) {
+      if(notify)window.lyricsPreview?.draw();
       return;
     }
 
     drawOverlayLayer(ctx,currentImg,overlay);
+    if(notify)window.lyricsPreview?.draw();
   }
 
   function loadOverlayImage(url) {
@@ -104,13 +108,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (opacitySlider && document.activeElement !== opacitySlider) opacitySlider.value = opacityVal;
     if (opacityOut && document.activeElement !== opacityOut) opacityOut.value = opacityVal;
 
-    const url = overlay.url || (overlay.asset ? `/api/overlay/${overlay.asset}` : '');
+    const url = overlay.asset ? `/api/overlay/${overlay.asset}` : overlay.url;
     loadOverlayImage(url);
   }
 
-  function bindInputPair(slider, numInput, key, min = 0, max = 100) {
+  function bindInputPair(slider, numInput, key) {
     if (!slider || !numInput) return;
+    const spec=PROJECT_SCHEMA.overlay[key],{min,max}=spec;
+    for(const input of [slider,numInput]){input.min=String(min);input.max=String(max);input.step='any';}
     const update = (val) => {
+      if(val===''||!Number.isFinite(Number(val))||Number(val)<min||Number(val)>max){
+        numInput.value=slider.value=projectStore.state.overlay[key]??spec.default;
+        document.dispatchEvent(new CustomEvent('studio-error',{detail:`Değer ${min}–${max} aralığında olmalı.`}));refreshUI();return;
+      }
       const num = Math.max(min, Math.min(max, Number(val)));
       slider.value = num;
       numInput.value = num;
@@ -120,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
           p.overlay[key] = num;
         });
       } catch (err) {
-        console.error(err);
+        document.dispatchEvent(new CustomEvent('studio-error',{detail:err.message}));refreshUI();
       }
       draw();
     };
@@ -134,14 +144,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  bindInputPair(xSlider, xOut, 'x', 0, 100);
-  bindInputPair(ySlider, yOut, 'y', 0, 100);
-  bindInputPair(scaleSlider, scaleOut, 'scale', 5, 300);
-  bindInputPair(opacitySlider, opacityOut, 'opacity', 0, 100);
+  bindInputPair(xSlider, xOut, 'x');
+  bindInputPair(ySlider, yOut, 'y');
+  bindInputPair(scaleSlider, scaleOut, 'scale');
+  bindInputPair(opacitySlider, opacityOut, 'opacity');
 
   if (uploadInput) {
     uploadInput.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
+      const token=++uploadEpoch;
       if (!file) return;
       if (nameLabel) nameLabel.textContent = 'Katman yükleniyor…';
 
@@ -151,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const response = await fetch('/api/overlay', { method: 'POST', body: form });
         const res = await response.json();
+        if(token!==uploadEpoch)return;
         if (!response.ok) throw new Error(res.message || 'Ön plan katmanı yüklenemedi.');
 
         projectStore.update(p => {
@@ -176,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
+      uploadEpoch++;
       projectStore.update(p => {
         p.overlay = {
           asset: '',

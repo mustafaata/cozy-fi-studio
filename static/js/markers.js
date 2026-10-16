@@ -1,151 +1,99 @@
-// İşaretçiler (Markers) ve Hizalama (Snapping)
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('timelineMarkers');
-  if (!container) return;
-
-  // Snap durumu
-  window.snapEnabled = true;
-
-  // Arayüze "Snap" (Yapışma) butonu ekleyelim
-  const tlHead = document.querySelector('.timeline-head');
-  if (tlHead) {
-    const snapBtn = document.createElement('button');
-    snapBtn.type = 'button';
-    snapBtn.className = 'ghost is-on';
-    snapBtn.title = 'Hizalama (Snap)';
-    snapBtn.textContent = 'Yapışma';
-    snapBtn.setAttribute('aria-pressed', 'true');
-    snapBtn.onclick = () => {
-      window.snapEnabled = !window.snapEnabled;
-      snapBtn.classList.toggle('is-on', window.snapEnabled);
-      snapBtn.setAttribute('aria-pressed', String(window.snapEnabled));
-      document.dispatchEvent(new CustomEvent('studio-status', {detail: window.snapEnabled ? 'Yapışma açık' : 'Yapışma kapalı'}));
-    };
-    tlHead.appendChild(snapBtn);
-
-    // Add Marker button
-    const addMarkerBtn = document.createElement('button');
-    addMarkerBtn.type = 'button';
-    addMarkerBtn.className = 'ghost';
-    addMarkerBtn.title = 'İşaretçi Ekle';
-    addMarkerBtn.textContent = '＋ İşaretçi';
-    addMarkerBtn.onclick = () => {
-      const p = projectStore.state;
-      const t = audioEngine.getProjectTime();
-      window.change(st => {
-        if (!st.markers) st.markers = [];
-        st.markers.push({id:'m_'+crypto.randomUUID().replaceAll('-',''),time: t, name: 'Bölüm ' + (st.markers.length + 1)});
-      });
-    };
-    tlHead.appendChild(addMarkerBtn);
+/* Project markers share the timeline viewport and an accessible value editor. */
+document.addEventListener('DOMContentLoaded',()=>{
+  const container=document.getElementById('timelineMarkers'),head=document.querySelector('.timeline-head');
+  if(!container||!head)return;
+  window.snapEnabled=true;
+  const snap=document.createElement('button');snap.type='button';snap.className='ghost is-on';snap.textContent='Yapışma';snap.setAttribute('aria-pressed','true');
+  snap.addEventListener('click',()=>{window.snapEnabled=!window.snapEnabled;snap.classList.toggle('is-on',window.snapEnabled);snap.setAttribute('aria-pressed',String(window.snapEnabled));});
+  const add=document.createElement('button');add.type='button';add.className='ghost';add.textContent='＋ İşaretçi';
+  head.append(snap,add);
+  const panel=document.createElement('details');panel.className='marker-editor';
+  panel.innerHTML=`<summary>İşaretçiler <output class="marker-count">0</output></summary><div class="marker-fields">
+    <label>İşaretçi<select class="marker-select"></select></label><label>Ad<input class="marker-name" type="text" maxlength="160"></label>
+    <label>Proje zamanı · sn<input class="marker-time" type="number" min="0" step="any" data-scrub-step="0.01"></label>
+    <button type="button" class="ghost marker-go">İşaretçiye git</button><button type="button" class="ghost marker-delete">Sil</button></div>
+    <p>Oklar: 1 kare · Shift: ince · Alt: 10 kare · Delete: sil · Escape: sürüklemeyi iptal et.</p><output class="marker-status" role="status"></output>`;
+  head.after(panel);
+  const field=name=>panel.querySelector('.marker-'+name);let selected=null,drag=null,renderKey=null;
+  const status=text=>{field('status').textContent=text;};
+  const choose=id=>{selected=id;syncFields();};
+  const edit=fn=>window.change(p=>{const marker=p.markers.find(m=>m.id===selected);if(marker)fn(marker,p);});
+  add.addEventListener('click',()=>{
+    const id='m_'+crypto.randomUUID().replaceAll('-','');selected=id;
+    if(window.change(p=>p.markers.push({id,time:Math.max(0,Math.min(projectDuration(p),audioEngine.getProjectTime())),name:'Bölüm '+(p.markers.length+1)}))){panel.open=true;field('name').focus();}
+  });
+  field('select').addEventListener('change',()=>choose(field('select').value));
+  field('name').addEventListener('change',()=>{const name=field('name').value.trim();if(!name){status('İşaretçi adı boş olamaz.');syncFields();return;}edit(m=>{m.name=name;});});
+  field('time').addEventListener('change',()=>{const input=field('time');if(input.value===''||!input.validity.valid){status('Zaman proje aralığında olmalı.');syncFields();return;}edit(m=>{m.time=Number(input.value);});});
+  const remove=()=>{
+    const active=document.activeElement,fromRuler=!!active?.dataset.markerId;
+    if(!selected||!window.change(p=>{p.markers=p.markers.filter(m=>m.id!==selected);}))return;
+    const message='İşaretçi silindi. Geri al ile dönebilirsiniz.';status(message);
+    document.dispatchEvent(new CustomEvent('studio-status',{detail:message}));
+    const next=fromRuler?[...container.children].find(node=>node.dataset.markerId===selected):null;
+    if(!projectStore.state.markers.length)add.focus();
+    else if(next)next.focus({preventScroll:true});
+    else {panel.open=true;field('select').focus();}
+  };
+  field('delete').addEventListener('click',remove);
+  field('go').addEventListener('click',()=>{const marker=projectStore.state.markers.find(m=>m.id===selected);if(marker){audioEngine.seekProjectTime(marker.time);window.timelineView.focus(Math.max(0,marker.time-1),marker.time+1);}});
+  function syncFields(){
+    const markers=projectStore.state.markers;if(!markers.some(m=>m.id===selected))selected=markers[0]?.id??null;
+    panel.hidden=!markers.length;
+    const marker=markers.find(m=>m.id===selected),select=field('select');
+    select.replaceChildren(...markers.map(m=>new Option(`${m.name} · ${m.time.toFixed(3)} sn`,m.id)));select.value=selected??'';
+    field('count').value=String(markers.length);field('name').value=marker?.name??'';field('time').value=marker?.time??'';field('time').max=projectDuration(projectStore.state);
+    for(const input of panel.querySelectorAll('input,select,button'))input.disabled=!marker;
+    add.disabled=markers.length>=PROJECT_SCHEMA.limits.markers||!projectDuration(projectStore.state);
   }
-
-  let listeners;
-  function renderMarkers() {
-    listeners?.abort();listeners=new AbortController();
-    container.innerHTML = '';
-    const p = projectStore.state;
-    if (!p || !p.markers) return;
-
-    const duration = window.projectDuration(p);
-    if(duration<=0)return;
-    const width = container.parentElement.offsetWidth; // width of timeline
-
-    p.markers.forEach((marker, idx) => {
-      const el = document.createElement('div');
-      el.className = 'marker';
-      el.style.position = 'absolute';
-      el.style.left = ((marker.time / duration) * 100) + '%';
-      el.style.top = '0';
-      el.style.height = '100%';
-      el.style.width = '2px';
-      el.style.backgroundColor = '#f1c40f';
-      el.style.pointerEvents = 'auto';
-      el.style.cursor = 'ew-resize';
-      el.title = `📍 ${marker.name} (${marker.time.toFixed(2)} sn)\nSürükle: Zamanı değiştir | Çift Tıkla: Yeniden adlandır | Sağ Tıkla: Sil`;
-
-      const pin = document.createElement('div');
-      pin.className = 'marker-pin';
-      pin.style.cssText = 'position:absolute;top:-6px;left:-4px;width:10px;height:10px;border-radius:50%;background:#f1c40f;box-shadow:0 0 8px rgba(241,196,15,0.8);cursor:pointer;';
-      el.appendChild(pin);
-
-      const label = document.createElement('div');
-      label.className = 'marker-label';
-      label.textContent = `${marker.name} · ${marker.time.toFixed(2)}s`;
-      label.style.cssText = 'position:absolute;top:-22px;left:6px;font-size:10px;color:#fff;background:rgba(25,20,32,0.88);backdrop-filter:blur(4px);padding:1px 6px;border-radius:4px;border:1px solid #f1c40f;white-space:nowrap;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,0.5);';
-      el.appendChild(label);
-
-      // Sürükleme (Drag)
-      let isDragging = false;
-      el.addEventListener('pointerdown', e => {
-        if (e.button !== 0) return;
-        isDragging = true;
-        e.stopPropagation();
+  function cleanup(){const d=drag;drag=null;if(d?.node.hasPointerCapture?.(d.pointer))d.node.releasePointerCapture(d.pointer);return d;}
+  function cancel(){const d=cleanup();if(d)d.node.style.left=window.timelineView.fraction(d.initial)*100+'%';}
+  function render(){
+    const p=projectStore.state,view=window.timelineView,key=JSON.stringify([p.markers,projectDuration(p),view.start,view.span]);
+    if(key===renderKey)return;renderKey=key;cancel();
+    const focus=document.activeElement?.dataset.markerId;container.replaceChildren();syncFields();
+    if(projectDuration(p)<=0)return;
+    for(const marker of p.markers){
+      const fraction=view.fraction(marker.time);if(fraction<0||fraction>1)continue;
+      const button=document.createElement('button');button.type='button';button.className='marker';button.dataset.markerId=marker.id;
+      button.style.left=fraction*100+'%';button.setAttribute('aria-label',`${marker.name} · ${marker.time.toFixed(3)} saniye`);button.title='Sürükle veya oklarla taşı; Enter ile ad ve zamanı düzenle';
+      const pin=document.createElement('span');pin.className='marker-pin';pin.setAttribute('aria-hidden','true');
+      const label=document.createElement('span');label.className='marker-label';label.textContent=`${marker.name} · ${marker.time.toFixed(3)} sn`;button.append(pin,label);
+      button.addEventListener('click',()=>choose(marker.id));
+      button.addEventListener('dblclick',()=>{choose(marker.id);panel.open=true;field('name').focus();});
+      button.addEventListener('pointerdown',event=>{
+        if(event.button!==0||drag)return;event.stopPropagation();choose(marker.id);
+        drag={pointer:event.pointerId,node:button,id:marker.id,initial:marker.time,value:marker.time,x:event.clientX,moved:false};button.setPointerCapture(event.pointerId);
       });
-
-      window.addEventListener('pointermove', e => {
-        if (!isDragging) return;
-        const rect = container.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let t = (x / rect.width) * duration;
-        t = Math.max(0, Math.min(duration, t));
-        el.style.left = ((t / duration) * 100) + '%';
-      }, {signal:listeners.signal});
-
-      window.addEventListener('pointerup', e => {
-        if (!isDragging) return;
-        isDragging = false;
-        const rect = container.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let t = (x / rect.width) * duration;
-        window.change(st => {
-          st.markers[idx].time = Math.max(0, Math.min(duration, t));
-        });
-      }, {signal:listeners.signal});
-
-      // İsimlendirme
-      el.addEventListener('dblclick', e => {
-        e.stopPropagation();
-        const newName = prompt('İşaretçi adı:', marker.name);
-        if (newName) {
-          window.change(st => st.markers[idx].name = newName);
-        }
+      button.addEventListener('pointermove',event=>{
+        const d=drag;if(!d||d.pointer!==event.pointerId)return;
+        if(Math.abs(event.clientX-d.x)>=CONTROL_INPUT.dragThreshold)d.moved=true;if(!d.moved)return;
+        const bounds=container.getBoundingClientRect();
+        d.value=Math.max(0,Math.min(projectDuration(projectStore.state),view.time((event.clientX-bounds.left)/Math.max(1,bounds.width))));
+        button.style.left=view.fraction(d.value)*100+'%';status(`${d.value.toFixed(3)} sn`);
       });
-
-      // Silme
-      el.addEventListener('contextmenu', e => {
-        e.preventDefault();
-        window.change(st => {
-          st.markers.splice(idx, 1);
-        });
+      button.addEventListener('pointerup',event=>{if(drag?.pointer!==event.pointerId)return;const d=cleanup();if(d.moved)window.change(p=>{const item=p.markers.find(m=>m.id===d.id);if(item)item.time=d.value;});});
+      for(const name of ['pointercancel','lostpointercapture'])button.addEventListener(name,event=>{if(drag?.pointer===event.pointerId)cancel();});
+      button.addEventListener('keydown',event=>{
+        if(['ArrowLeft','ArrowRight'].includes(event.key)){
+          event.preventDefault();event.stopPropagation();choose(marker.id);
+          const delta=(event.key==='ArrowRight'?1:-1)*(event.shiftKey?.1:event.altKey?10:1)/Number(projectStore.state.output.fps);
+          edit((m,p)=>{m.time=Math.max(0,Math.min(projectDuration(p),Number((m.time+delta).toFixed(9))));});
+        }else if(event.key==='Enter'){event.preventDefault();choose(marker.id);panel.open=true;field('name').focus();}
+        else if(event.key==='Delete'){event.preventDefault();event.stopPropagation();choose(marker.id);remove();}
       });
-
-      container.appendChild(el);
-    });
+      container.append(button);
+    }
+    if(focus)[...container.children].find(node=>node.dataset.markerId===focus)?.focus({preventScroll:true});
   }
-
-  projectStore.addEventListener('change', renderMarkers);
-  window.addEventListener('resize', renderMarkers);
-  renderMarkers();
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&drag){event.preventDefault();event.stopPropagation();cancel();}},true);
+  window.addEventListener('blur',cancel);projectStore.addEventListener('snapshot',cancel);
+  projectStore.addEventListener('change',render);window.timelineView.addEventListener('change',render);render();
 });
 
-// Snapping API for audio regions
-window.getSnapPoints = function() {
-  if (!window.snapEnabled) return [];
-  const p = projectStore.state;
-  const points = [];
-
-  // 1. Marker times
-  if (p.markers) {
-    p.markers.forEach(m => points.push(m.time));
-  }
-
-  // 2. Track edges (offset, end)
-  Object.keys(p.tracks).forEach(k => {
-    const t = p.tracks[k];
-    if (t.offset !== undefined) points.push(t.offset);
-    if (t.source) points.push(t.offset+((t.end??t.source.duration)-t.start)/(k==='main'?p.effects.speed:1));
-  });
-
+window.getSnapPoints=function(){
+  if(!window.snapEnabled)return [];
+  const p=projectStore.state,points=p.markers.map(m=>m.time);
+  for(const [id,track] of Object.entries(p.tracks)){points.push(track.offset);if(track.source)points.push(trackTiming(p,id,track.offset).end);}
   return points;
 };

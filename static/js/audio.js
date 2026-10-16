@@ -16,6 +16,7 @@ const TRACK_META = {
 const REGION_FILL = 'rgba(255, 214, 148, 0.12)';
 const MASK_FILL = 'rgba(9, 8, 13, 0.66)';
 const MAX_ZOOM = 3000;
+const AUTOMATION_GAIN_TOLERANCE = 0.0005;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 
@@ -23,32 +24,33 @@ class AudioEngine {
   constructor() {
     // Medya elemanlarını biz oluşturuyoruz: dosya değişse de aynı eleman kalır,
     // böylece Web Audio grafiği (createMediaElementSource) bir kez kurulur.
-    this.media = {};
-    this.wsMap = {};
-    this.regMap = {};
+    this.media = Object.create(null);
+    this.wsMap = Object.create(null);
+    this.regMap = Object.create(null);
 
     this.graphReady = false;
-    this.objectUrls = {};
-    this.baseZoom = {};
-    this.zoomLevel = {};
-    this.zoomFrame = {};
-    this.pendingDelta = {};
-    this.pendingX = {};
-    this.masks = {};
-    this.justDragged = {};
-    this.dragTimers = {};
+    this.objectUrls = Object.create(null);
+    this.baseZoom = Object.create(null);
+    this.zoomLevel = Object.create(null);
+    this.zoomFrame = Object.create(null);
+    this.pendingDelta = Object.create(null);
+    this.pendingX = Object.create(null);
+    this.masks = Object.create(null);
+    this.justDragged = Object.create(null);
+    this.dragTimers = Object.create(null);
 
     this.settings = { speed: 0.85, bass: 0, reverb: 40, isVinyl: true, tone: 'none' };
     this.loopSelection = true;
     this.followSelection = false;
-    this.files = {};
+    this.files = Object.create(null);
 
     // Audio-reactive analysis state
     this.audioReactive = { bass: 0, mid: 0, treble: 0, bassHit: 0 };
     this._arPrevBass = 0;
     this._arFreqData = null;
-    this.loadTokens = {};
-    this.ambientSources = {};
+    this.loadTokens = Object.create(null);
+    this.decodedSources = Object.create(null);
+    this.ambientSources = Object.create(null);
     this.syncingRegions = false;
 
     // Tarayıcı içi dinleme ses seviyesi (Output / render dosyasını etkilemez)
@@ -76,6 +78,7 @@ class AudioEngine {
   }
 
   setWaveTheme(themeId) {
+    if(this.waveTheme===themeId&&this.themeWave===this.wsMain)return;
     const themes = {
       cyan_magenta: { wave: '#1a8bb8', progress: '#26bfff' },
       sunset_purple: { wave: '#b85426', progress: '#ff7333' },
@@ -90,7 +93,8 @@ class AudioEngine {
           waveColor: colors.wave,
           progressColor: colors.progress
         });
-      } catch (_) {}
+        this.waveTheme=themeId;this.themeWave=this.wsMain;
+      } catch (error) {document.dispatchEvent(new CustomEvent('studio-error',{detail:'Dalga biçimi teması uygulanamadı: '+error.message}));}
     }
   }
 
@@ -103,31 +107,41 @@ class AudioEngine {
   }
 
   initTrack(kind) {
+    // Dynamic inspectors may be mounted after the store's first notification.
+    const container = document.getElementById('waveform-' + kind);
+    if (!container) return;
     const m = new Audio();
     if (kind === 'main') m.preload = 'auto'; else m.muted = true;
     this.media[kind] = m;
-
-    // Wait for DOM element to exist (created by workspace.js)
-    const container = document.getElementById('waveform-' + kind);
-    if (!container) return; // Will retry when workspace is ready
 
     this.wsMap[kind] = this.createWave(kind, m);
     this.regMap[kind] = this.wsMap[kind].registerPlugin(WaveSurfer.Regions.create());
 
     if (kind === 'main') {
       this.wsMap.main.on('timeupdate', () => this.tick());
-      this.wsMap.main.on('seeking', () => this.syncTimeline());
-      this.wsMap.main.on('seeked', () => this.syncTimeline());
+      this.wsMap.main.on('seeking', () => {
+        const intent=this.seekIntent,origin=intent&&Math.abs(this.wsMain.getCurrentTime()-intent.time)<1e-5?intent.origin:null;
+        this.transportEvent('seek',origin);this.resetTrackEffects();this.syncTimeline();
+      });
+      this.wsMap.main.on('seeked', () => {this.seekIntent=null;this.syncTimeline();});
       this.wsMap.main.on('play', () => {
         this.initWebAudio();
-        if (this.audioCtx?.state === 'suspended') this.audioCtx.resume();
+        for(const nodes of Object.values(this.trackNodes??{}))nodes.effects?.dynamics.recover();
+        this.routing?.recover?.();
+        if (this.audioCtx?.state === 'suspended') this.audioCtx.resume().catch(error => {
+          document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message}));
+        });
         this.syncTimeline();
+        this.startEffectScheduling();
+        this.transportEvent('play');
       });
-      this.wsMap.main.on('pause', () => this.stopAmbient());
+      this.wsMap.main.on('pause', () => {this.stopEffectScheduling();this.transportEvent('pause');this.stopAmbient();});
       this.wsMap.main.on('finish', () => {
+        this.stopEffectScheduling();
+        this.transportEvent('finish');
         this.stopAmbient();
         if (this.loopSelection) {
-          this.seekTo(projectStore.state.tracks.main.start);
+          this.seekProjectTime(0);
           this.play();
         }
       });
@@ -138,7 +152,7 @@ class AudioEngine {
   }
 
   createWave(kind, media) {
-    const meta = TRACK_META[kind] || { selector: '#waveform-'+kind, color: '#999999', height: 'auto', zoomTag: 'zoomTag'+kind };
+    const meta = (Object.hasOwn(TRACK_META,kind)?TRACK_META[kind]:null) || { selector: '#waveform-'+kind, color: '#999999', height: 'auto', zoomTag: 'zoomTag'+kind };
     return WaveSurfer.create({
       container: meta.selector,
       media,
@@ -222,10 +236,10 @@ class AudioEngine {
       if (!regions.getRegions().includes(region)) return;
       // Snap to markers and other regions if snapping is enabled
       if (window.snapEnabled && window.getSnapPoints) {
-        const points = window.getSnapPoints();
+        const points = waveformSnapPoints(projectStore.state,kind,window.getSnapPoints(),this.ws(kind).getDuration());
         const duration = region.end - region.start;
         const currentZoom = this.zoomLevel[kind] || 10;
-        const snapDist = Math.max(0.05, 8 / currentZoom); // 8px snap distance
+        const snapDist = 8 / Math.max(1,currentZoom);
 
         let snapped = false;
         if (side === 'start') {
@@ -369,57 +383,108 @@ class AudioEngine {
   }
 
   /* ---------- dosya yükleme ---------- */
-  async loadAudio(kind, file) {
-    this.stopAll();
+  async decodeSource(file) {
+    const decoder=new OfflineAudioContext(2,1,44100);
+    let timer;
+    try {
+      return await Promise.race([
+        file.arrayBuffer().then(bytes=>decoder.decodeAudioData(bytes)),
+        new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Ses yükleme süresi aşıldı.')),PROJECT_SCHEMA.limits.audioDecodeMs);})
+      ]);
+    } finally {clearTimeout(timer);}
+  }
+
+  async loadAudio(kind, file, {preserveHistory = false, decodedBuffer = null} = {}) {
+    const expected=projectStore.state.tracks[kind]?.source;
+    // Generated WAVs have a stable timestamp; downloading them assigns a disk mtime.
+    if(expected?.lastModified===0&&expected.name===file.name&&expected.size===file.size&&file.lastModified!==0)
+      file=new File([file],file.name,{type:file.type,lastModified:0});
+    if(expected&&projectStore.state.sequences?.length&&(kind==='main'||sequenceOwner(projectStore.state,'audio',kind))&&
+      (expected.name!==file.name||expected.size!==file.size||expected.lastModified!==file.lastModified))
+      throw new Error('Bu ses sekansın kaynak veya proje saatidir. Değiştirmeden önce ilgili sekansları çözün; aynı dosya yeniden bağlanabilir.');
+    if(expected&&projectStore.state.audioWarps.some(w=>w.source===kind||w.output===kind)&&
+      (expected.name!==file.name||expected.size!==file.size||expected.lastModified!==file.lastModified))
+      throw new Error('Bu ses kayıtlı bir warp içinde kullanılıyor. Önce warp’ı kaldırın veya aynı kaynak dosyasını yeniden bağlayın.');
+    if(expected&&projectStore.state.audioComps.some(c=>c.output===kind||c.takes.includes(kind))&&
+      (expected.name!==file.name||expected.size!==file.size||expected.lastModified!==file.lastModified))
+      throw new Error('Bu ses kayıtlı comp içinde kullanılıyor. Kaynağı değiştirmeden önce comp kaydını kaldırın.');
+    const epoch=projectStore.epoch;
     const token = (this.loadTokens[kind] || 0) + 1;
     this.loadTokens[kind] = token;
+    // Decode in isolation: bad input must never disconnect the working source.
+    const buffer=decodedBuffer??await this.decodeSource(file);
+    if(this.loadTokens[kind]!==token||projectStore.epoch!==epoch)return;
+    if(!projectStore.state.tracks[kind])throw new Error('Ses katmanı artık bulunamıyor.');
+    const previous=projectStore.state.tracks[kind];
+    const oldFile=this.files[kind],oldBuffer=this.decodedSources[kind],oldMain=this.originalMainBuffer;
+    this.stopAll();
+    if(kind==='main'){this.mainMontage?.cancel();delete this.originalMainBuffer;}
     const url = URL.createObjectURL(file);
     const oldUrl = this.objectUrls[kind];
-    delete this.files[kind];
-    this.objectUrls[kind] = url;
     this.syncingRegions = true;
     this.regions(kind).clearRegions();
     this.syncingRegions = false;
     try {
-      await this.ws(kind).load(url);
-      if (this.loadTokens[kind] !== token) return;
-      const duration = this.ws(kind).getDuration();
-      const previous = projectStore.state.tracks[kind];
+      await this.ws(kind).load(url,Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i).slice()),buffer.duration);
+      if (this.loadTokens[kind] !== token||projectStore.epoch!==epoch) {URL.revokeObjectURL(url);return;}
+      const duration = buffer.duration;
+      this.files[kind]=file;this.decodedSources[kind]=buffer;this.objectUrls[kind]=url;
+      if(kind==='main')this.originalMainBuffer=buffer;
       const reconnect = previous.source && previous.source.name === file.name && previous.source.size === file.size && previous.source.lastModified === file.lastModified;
       projectStore.update(project => {
         const track = project.tracks[kind];
-        if (!reconnect) { track.start = 0; track.end = null; }
+        if (!reconnect) { Object.assign(track,{start:0,end:null,until:null,phase:0,fadeOffset:null,fadeEnd:null,spectral:{}}); }
         if (!reconnect && kind === 'main' && project.lyrics.lines.length) project.lyrics.enabled = false;
+        if (!reconnect && kind === 'main')project.mainClips=null;
         track.source = {name:file.name, size:file.size, lastModified:file.lastModified, duration};
       }, false);
       this.files[kind] = file;
-      projectStore.past = []; projectStore.future = [];
+      if (!preserveHistory) { projectStore.past = []; projectStore.future = []; }
       this.applyProject();
       projectStore.notify();
     } catch (error) {
       if (this.loadTokens[kind] !== token) return;
-      this.ws(kind).empty(); delete this.files[kind];
-      if (this.objectUrls[kind] === url) { URL.revokeObjectURL(url); delete this.objectUrls[kind]; }
+      if(oldFile)this.files[kind]=oldFile;else delete this.files[kind];
+      if(oldBuffer)this.decodedSources[kind]=oldBuffer;else delete this.decodedSources[kind];
+      if(kind==='main')this.originalMainBuffer=oldMain;
+      if(oldUrl){this.objectUrls[kind]=oldUrl;await this.ws(kind).load(oldUrl,oldBuffer?Array.from({length:oldBuffer.numberOfChannels},(_,i)=>oldBuffer.getChannelData(i).slice()):undefined,previous.source?.duration);}
+      else {this.ws(kind).empty();delete this.objectUrls[kind];}
+      URL.revokeObjectURL(url);
       throw error;
     } finally {
-      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      if(this.objectUrls[kind]!==url)URL.revokeObjectURL(url);
+      if (oldUrl&&this.objectUrls[kind]!==oldUrl) URL.revokeObjectURL(oldUrl);
     }
   }
 
   disconnectTrack(kind) {
+    delete this.decodedSources[kind];
+    if(kind==='main'){this.mainMontage?.cancel();delete this.originalMainBuffer;}
     this.loadTokens[kind] = (this.loadTokens[kind] || 0) + 1;
     this.stopAll();
     delete this.files[kind];
     this.syncingRegions = true;
-    this.regions(kind).clearRegions();
-    this.ws(kind).empty();
+    this.regions(kind)?.clearRegions();
+    this.ws(kind)?.empty();
     this.syncingRegions = false;
     if (this.objectUrls[kind]) URL.revokeObjectURL(this.objectUrls[kind]);
     delete this.objectUrls[kind];
   }
 
+  destroyTrack(kind) {
+    if(TRACK_IDS.includes(kind))return;
+    this.disconnectTrack(kind);
+    this.ws(kind)?.destroy();
+    const nodes=this.trackNodes?.[kind];nodes?.effects?.disconnect();nodes?.gain.disconnect();nodes?.pan.disconnect();
+    this.media[kind]?.pause();this.media[kind]?.removeAttribute('src');
+    clearTimeout(this.dragTimers[kind]);cancelAnimationFrame(this.zoomFrame[kind]);
+    for(const map of [this.wsMap,this.regMap,this.media,this.trackNodes,this.loadTokens,this.baseZoom,this.zoomLevel,this.zoomFrame,this.pendingDelta,this.pendingX,this.masks,this.justDragged,this.dragTimers])if(map)delete map[kind];
+    this.volumePreviews?.delete(kind);this.visualProject=null;
+  }
+
   saveRegion(kind, region) {
     if (this.syncingRegions || !this.files?.[kind]) return;
+    if(kind==='main'&&projectStore.state.mainClips){this.applyProject();return;}
     try {
       projectStore.update(project => {
         const duration = project.tracks[kind].source ? project.tracks[kind].source.duration : (this.ws(kind)?.getDuration() || 0);
@@ -462,6 +527,7 @@ class AudioEngine {
   }
 
   nudgeRegion(kind, edge, delta) {
+    if(kind==='main'&&projectStore.state.mainClips)return;
     const ws = this.ws(kind);
     if (!this.hasAudio(ws)) return;
     const duration = ws.getDuration();
@@ -513,6 +579,7 @@ class AudioEngine {
 
   /** Render için: bölüm yoksa parçanın tamamı. */
   getRange(kind) {
+    if(kind==='main'&&projectStore.state.mainClips)return {start:0,end:projectDuration(projectStore.state)*projectStore.state.effects.speed,selected:false};
     const track = projectStore.state.tracks[kind];
     return {start:track.start, end:track.end ?? track.source?.duration ?? 0,
       selected:track.start > 0 || track.end !== null};
@@ -531,11 +598,13 @@ class AudioEngine {
     if (ws === this.wsMain) this.followSelection = this.isInsideSelection(ws.getCurrentTime());
   }
 
-  seekTo(seconds) {
+  seekTo(seconds,{origin=null}={}) {
     if (!this.hasAudio(this.wsMain)) return;
     const range = this.getRange("main");
-    const safeEnd = Math.max(range.start, range.end - 0.05);
+    const safeEnd = Math.max(range.start, range.end - Number.EPSILON * Math.max(1, range.end));
     const time = clamp(seconds, range.start, safeEnd);
+    // Native seeking arrives asynchronously; retain the command's origin until seeked.
+    this.seekIntent={time,origin};this.transportEvent('seek',origin);
     this.wsMain.setTime(time);
     this.followSelection = this.isInsideSelection(time);
   }
@@ -549,10 +618,12 @@ class AudioEngine {
   attachWheelZoom(kind) {
     const container = document.querySelector(TRACK_META[kind].selector);
     if (!container) return;
+    container.title='Kaynak dalga biçimi · Ctrl/⌘ + tekerlek: yakınlaştır · tekerlek: paneli kaydır';
 
     container.addEventListener('wheel', (event) => {
       const ws = this.ws(kind);
       if (!this.hasAudio(ws)) return;
+      if(!event.ctrlKey&&!event.metaKey)return;
       event.preventDefault();
 
       const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
@@ -661,15 +732,36 @@ class AudioEngine {
   /* ---------- Web Audio grafiği ---------- */
   getProjectTime() {
     const project = projectStore.state;
-    return clamp((this.wsMain.getCurrentTime() - project.tracks.main.start) / project.effects.speed, 0, projectDuration(project));
+    if(this.mainMontage?.pending&&this.mainMontage.seekTime!==null&&this.mainMontage.seekTime!==undefined)return clamp(this.mainMontage.seekTime,0,projectDuration(project));
+    return clamp((this.wsMain.getCurrentTime() - mainClockStart(project)) / project.effects.speed, 0, projectDuration(project));
   }
+
+  seekProjectTime(time,options) {
+    const p=projectStore.state;
+    if(this.mainMontage?.pending){this.mainMontage.seekTime=clamp(time,0,projectDuration(p));return;}
+    this.seekTo(mainClockStart(p)+clamp(time,0,projectDuration(p))*p.effects.speed,options);
+  }
+
+  seekSourceTime(source) {
+    const p=projectStore.state,time=mainProjectTime(p,source,this.getProjectTime());
+    if(time===null){document.dispatchEvent(new CustomEvent('studio-error',{detail:'Bu kaynak anı ana montajda bulunmuyor.'}));return;}
+    this.seekProjectTime(time);
+  }
+
+  rawSourceBuffer(kind) {return this.decodedSources?.[kind]||(kind==='main'?this.originalMainBuffer||this.wsMain.getDecodedData():this.ws(kind)?.getDecodedData?.());}
+  sourceBuffer(kind) {return this.sourceProcessing?.get(kind)||this.rawSourceBuffer(kind);}
 
   applyProject() {
     const project = projectStore.state;
+    if(typeof AudioPreparedMix!=='undefined'){this.preparedMix??=new AudioPreparedMix(this);this.preparedMix.update();}
+    if(typeof AudioSourceProcessing!=='undefined'){this.sourceProcessing ||=new AudioSourceProcessing(this);this.sourceProcessing.update();}
+    if(typeof MainMontagePlayback!=='undefined') {
+      this.mainMontage ||= new MainMontagePlayback(this);this.mainMontage.update();
+    }
     const previousTiming = this.timingKey;
     const trackKeys = Object.keys(project.tracks);
     this.timingKey = JSON.stringify([project.effects.speed, ...trackKeys.map(kind => {
-      const t = project.tracks[kind]; return [t.start, t.end, t.offset, t.loop, t.source];
+      const t = project.tracks[kind]; return [kind, t.start, t.end, t.offset, t.until, t.phase, t.loop, t.source];
     })]);
     this.settings = {...project.effects, isVinyl: !project.effects.preservePitch};
     this.loopSelection = project.tracks.main.loop;
@@ -683,7 +775,7 @@ class AudioEngine {
         const region = regions.getRegions()[0];
         if (!range.selected) { if (region) region.remove(); }
         else if (!region) regions.addRegion({start:range.start, end:range.end, color:REGION_FILL, drag:true, resize:true});
-        else if (Math.abs(region.start - range.start) > 0.002 || Math.abs(region.end - range.end) > 0.002) {
+        else if (Math.abs(region.start - range.start) > 1e-7 || Math.abs(region.end - range.end) > 1e-7) {
           region.setOptions({start:range.start, end:range.end});
           this.styleRegion(region);
         }
@@ -695,14 +787,14 @@ class AudioEngine {
     this.masterGain.gain.value = project.master.volume / 100;
     if (this.lastCeiling !== project.master.ceiling) {
       const ceiling = 10 ** (project.master.ceiling / 20);
-      this.ceilingNode.curve = Float32Array.from({length:65537}, (_, i) => clamp(i / 32768 - 1, -ceiling, ceiling));
+      const range=PROJECT_SCHEMA.loudnessLimits.masterInputRange,threshold=ceiling*.9,headroom=ceiling-threshold;
+      this.ceilingNode.curve = Float32Array.from({length:65537}, (_, i) => {const value=(i/32768-1)*range,amplitude=Math.abs(value);return amplitude<=threshold?value:Math.sign(value)*Math.min(ceiling,threshold+headroom*Math.tanh((amplitude-threshold)/headroom));});
       this.lastCeiling = project.master.ceiling;
     }
     for (const kind of trackKeys) {
-      if (this.trackNodes[kind]) {
-        this.trackNodes[kind].pan.pan.value = project.tracks[kind].pan;
-      }
+      this.ensureTrackNode(kind);
     }
+    this.routing.update(project,this.trackNodes);
     if (this.wsMain.isPlaying() && previousTiming !== this.timingKey) this.syncTimeline();
     else this.scheduleEnvelopes();
   }
@@ -713,12 +805,17 @@ class AudioEngine {
     this.ceilingNode = ctx.createWaveShaper();
     this.monitorGain = ctx.createGain();
     this.monitorGain.gain.value = this.isMuted ? 0 : this.monitorVolume;
-    this.masterGain.connect(this.ceilingNode).connect(this.monitorGain).connect(ctx.destination);
-    this.trackNodes = {};
+    this.ceilingInput=ctx.createGain();this.ceilingInput.gain.value=1/PROJECT_SCHEMA.loudnessLimits.masterInputRange;
+    this.liveMonitorGate=ctx.createGain();this.mixOutput=ctx.createGain();
+    this.masterGain.connect(this.ceilingInput).connect(this.ceilingNode).connect(this.liveMonitorGate).connect(this.mixOutput).connect(this.monitorGain).connect(ctx.destination);
+    if(typeof LoudnessMonitor!=='undefined')this.loudness=new LoudnessMonitor(ctx,this.mixOutput);
+    this.trackNodes = Object.create(null);
+    this.routing=new AudioRoutingGraph(ctx,this.masterGain,()=>this.trackImpulse ||=trackReverbImpulse(ctx));
     const trackKeys = projectStore.state ? Object.keys(projectStore.state.tracks) : PROJECT_SCHEMA.defaultTracks;
     for (const kind of trackKeys) {
       this.ensureTrackNode(kind);
     }
+    this.routing.update(projectStore.state,this.trackNodes);
   }
 
   ensureTrackNode(kind) {
@@ -728,8 +825,57 @@ class AudioEngine {
     const gain = ctx.createGain();
     gain.channelCount = 2; gain.channelCountMode = 'explicit';
     const pan = ctx.createStereoPanner();
-    gain.connect(pan).connect(this.masterGain);
-    this.trackNodes[kind] = {gain, pan};
+    gain.connect(pan);
+    const effects=new TrackEffectsNode(ctx,gain,()=>this.trackImpulse ||= trackReverbImpulse(ctx));
+    this.trackNodes[kind] = {gain, pan, effects};
+  }
+
+  resetTrackEffects() {
+    if(!this.graphReady)return;
+    for(const [kind,nodes] of Object.entries(this.trackNodes)){
+      if(!nodes.effects)continue;
+      if(kind==='main'){this.dryGain.disconnect(nodes.effects.input);this.wetGain.disconnect(nodes.effects.input);}
+      nodes.effects.disconnect();
+      nodes.effects=new TrackEffectsNode(this.audioCtx,nodes.gain,()=>this.trackImpulse ||= trackReverbImpulse(this.audioCtx));
+      if(kind==='main'){this.dryGain.connect(nodes.effects.input);this.wetGain.connect(nodes.effects.input);}
+    }
+    this.routing.reset();
+  }
+
+  scheduleTrackEffects(time=this.getProjectTime(),now=this.audioCtx.currentTime) {
+    const effectsProject=this.audioFxDraft??projectStore.state;
+    this.preparedMix?.update(effectsProject);
+    for(const [kind,track] of Object.entries(effectsProject.tracks))
+      this.trackNodes[kind]?.effects?.schedule(track,time,now,this.wsMain.isPlaying(),projectDuration(effectsProject),effectsProject.rhythm.bpm);
+    this.routing.scheduleEffects(time,now,this.wsMain.isPlaying(),projectDuration(effectsProject),effectsProject);
+    this.effectRefillAt=time+PROJECT_SCHEMA.trackEffects.refill;
+  }
+
+  startEffectScheduling() {
+    this.stopEffectScheduling();
+    // Audio control must keep advancing when the display's animation frames stop.
+    this.effectsTimer=setInterval(()=>{
+      if(this.graphReady&&this.wsMain.isPlaying()&&this.getProjectTime()>=this.effectRefillAt)this.scheduleTrackEffects();
+    },PROJECT_SCHEMA.trackEffects.refill*500);
+  }
+
+  stopEffectScheduling(){clearInterval(this.effectsTimer);this.effectsTimer=null;}
+
+  transportEvent(action,origin=null) {
+    document.dispatchEvent(new CustomEvent('studio-transport',{detail:{action,time:this.getProjectTime(),origin}}));
+  }
+
+  setVolumePreview(kind,preview) {
+    if(preview&&this.preparedMix?.active)throw new Error('Hazırlanmış FX miksinde canlı kayıt kullanılamaz; önce yakalama/ileri örnekleme efektini kapatın.');
+    this.volumePreviews ||= new Map();
+    if(preview)this.volumePreviews.set(kind,preview);else this.volumePreviews.delete(kind);
+    this.scheduleEnvelopes();
+  }
+
+  automationVolumeAt(kind,time,left=false) {
+    const preview=this.volumePreviews?.get(kind),track=projectStore.state.tracks[kind];
+    if(preview&&(time>preview.start||time===preview.start&&!left)&&(time<preview.end||left&&time===preview.end))return preview.value;
+    return automationValue(track.automation.volume,time,track.volume,left);
   }
 
   scheduleEnvelopes() {
@@ -744,76 +890,55 @@ class AudioEngine {
       const gain = this.trackNodes[kind].gain.gain;
       const panNode = this.trackNodes[kind].pan.pan;
       const audible=trackAudible(project,kind);
-      const vol = audible ? track.volume / 100 : 0;
-
       gain.cancelScheduledValues(now);
       panNode.cancelScheduledValues(now);
-
       const timing = trackTiming(project, kind, time);
-
-      // Calculate envelope values for fade-ins/fade-outs
-      const span = Math.max(0, timing.end - track.offset);
+      const fadeOffset=track.fadeOffset??track.offset,fadeEnd=track.fadeEnd??timing.end;
+      const span = Math.max(0, fadeEnd - fadeOffset);
       const fi = Math.min(track.fadeIn, span), fo = Math.min(track.fadeOut, span);
+      const volumeAt = (t,left=false) => this.automationVolumeAt(kind,t,left) / 100;
+      // Evaluate the continuous envelope at the end too; the gate closes separately.
+      const envelopeAt = t => Math.max(0, Math.min(1, fi ? (t - fadeOffset) / fi : 1,
+        fo ? (fadeEnd - t) / fo : 1));
+      const valueAt = (t,left=false) => audible ? envelopeAt(t) * volumeAt(t,left) : 0;
+      const playing = this.wsMain.isPlaying();
+      gain.setValueAtTime((timing.active || kind==='main'&&time<timing.end) && (playing || kind === 'main') ? valueAt(time) : 0, now);
+      panNode.setValueAtTime(automationValue(track.automation.pan, time, track.pan), now);
+      if (!playing) continue;
 
-      // If automation exists, schedule the curve values. Otherwise apply normal fade envelope.
-      if (track.automation && track.automation.volume && track.automation.volume.length > 0) {
-        gain.setValueAtTime(audible?timing.envelope*automationValue(track.automation.volume,time,track.volume)/100:0,now);
-        let lastVal = vol;
-        for (const [t, v] of track.automation.volume) {
-          const delta = (t - time);
-          if (delta >= 0) {
-             gain.linearRampToValueAtTime(audible?trackTiming(project,kind,t).envelope*(v/100):0,now+delta);
-          } else {
-             lastVal = v / 100;
-             // The current interpolated value was seeded above; past points do not overwrite it.
-          }
-        }
-      } else {
-        // Fallback to crossfading envelope logic
-        const currentTarget = (kind === 'main' && !this.wsMain.isPlaying()) ? vol : timing.envelope * vol;
-        gain.setValueAtTime(currentTarget, now);
-        if (this.wsMain.isPlaying()) {
-          const points = [...new Set([track.offset, track.offset + fi, timing.end - fo,
-            fi + fo > span ? track.offset + span * fi / (fi + fo) : timing.end, timing.end])]
-            .filter(t => t > time && t >= track.offset && t <= timing.end).sort((a,b) => a-b);
-          for (const point of points) {
-            const value = point === timing.end && !fo ? vol : trackTiming(project, kind, point).envelope * vol;
-            if (point === track.offset) gain.setValueAtTime(value, now + (point - time));
-            else gain.linearRampToValueAtTime(value, now + (point - time));
-          }
-        }
+      const start = Math.max(time, track.offset);
+      if (track.source && start < timing.end) {
+        const boundaries = [...new Set([start, timing.end, fadeOffset + fi, fadeEnd - fo,
+          ...(fi + fo > span ? [fadeOffset + span * fi / (fi + fo)] : []),
+          ...(track.automation.volume || []).map(([t]) => t),
+          ...[this.volumePreviews?.get(kind)?.start,this.volumePreviews?.get(kind)?.end].filter(Number.isFinite)])]
+          .filter(t => t >= start && t <= timing.end).sort((a,b) => a-b);
+        gain.setValueAtTime(valueAt(start), now + start - time);
+        scheduleParameterCurve(gain,valueAt,boundaries,time,now,AUTOMATION_GAIN_TOLERANCE);
+        gain.setValueAtTime(0, now + timing.end - time);
       }
-
-      if (track.automation && track.automation.pan && track.automation.pan.length > 0) {
-        panNode.setValueAtTime(automationValue(track.automation.pan,time,track.pan),now);
-        let lastPan = track.pan;
-        for (const [t, v] of track.automation.pan) {
-          const delta = (t - time);
-          if (delta >= 0) {
-             panNode.linearRampToValueAtTime(v, now + delta);
-          } else {
-             lastPan = v;
-             // Keep the interpolated value at the seek point.
-          }
-        }
-      } else {
-        panNode.setValueAtTime(track.pan, now);
-      }
+      const end = projectDuration(project);
+      const panTimes = [...new Set([time,...(track.automation.pan || []).map(([t]) => t), end])]
+        .filter(t => t >= time && t <= end).sort((a,b) => a-b);
+      scheduleParameterCurve(panNode,(t,left=false)=>automationValue(track.automation.pan,t,track.pan,left),panTimes,time,now,AUTOMATION_GAIN_TOLERANCE);
     }
+    this.routing.schedule(time,now,this.wsMain.isPlaying(),projectDuration(project));this.scheduleTrackEffects(time,now);
   }
 
   stopAmbient() {
+    this.preparedMix?.stop();
     for (const source of Object.values(this.ambientSources)) {
       try { source.stop(); } catch (_) { /* already ended */ }
       source.disconnect();
     }
-    this.ambientSources = {};
+    this.ambientSources = Object.create(null);
     if (this.graphReady) {
       for (const [kind, nodes] of Object.entries(this.trackNodes)) {
         if (kind === 'main') continue; // DO NOT zero the main audio track!
         nodes.gain.gain.cancelScheduledValues(this.audioCtx.currentTime);
         nodes.gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
       }
+      this.routing.schedule(this.getProjectTime(),this.audioCtx.currentTime,false,projectDuration(projectStore.state));
     }
   }
 
@@ -825,10 +950,12 @@ class AudioEngine {
     const now = this.audioCtx.currentTime;
     this.clockAnchor = {time, contextTime:now};
     this.scheduleEnvelopes();
+    if(this.preparedMix?.sync(time,now))return;
     if (!this.wsMain.isPlaying() || this.mediaMain.seeking || this.mediaMain.readyState < 3) return;
-    for (const kind of ['rain', 'fire']) {
+    for (const kind of Object.keys(project.tracks)) {
+      if (kind === 'main') continue;
       if (!this.files[kind]) continue;
-      const buffer = this.ws(kind).getDecodedData();
+      const buffer = this.sourceBuffer(kind);
       if (!buffer) continue;
       const track = project.tracks[kind];
       const start = Math.max(time, track.offset);
@@ -838,7 +965,7 @@ class AudioEngine {
       source.buffer = buffer; source.loop = track.loop;
       source.loopStart = track.start;
       source.loopEnd = track.end ?? buffer.duration;
-      source.connect(this.trackNodes[kind].gain);
+      source.connect(this.trackNodes[kind].effects.input);
       source.start(now + start - time, timing.position);
       source.stop(now + timing.end - time);
       this.ambientSources[kind] = source;
@@ -847,7 +974,8 @@ class AudioEngine {
 
   tick() {
     if (this.reviewRange && this.wsMain.isPlaying() && this.wsMain.getCurrentTime() >= this.reviewRange.end - .02) {
-      this.seekTo(this.reviewRange.start);
+      if(this.reviewRange.onBoundary)this.reviewRange.onBoundary();
+      else this.seekTo(this.reviewRange.start);
       return;
     }
     if (!this.files?.main) return;
@@ -859,12 +987,14 @@ class AudioEngine {
     }
     if (this.wsMain.isPlaying() && this.wsMain.getCurrentTime() < range.start) this.seekTo(range.start);
     const time = this.getProjectTime();
+    if(this.graphReady&&this.wsMain.isPlaying()&&time>=this.effectRefillAt)this.scheduleTrackEffects();
     if (this.graphReady && this.wsMain.isPlaying() && this.clockAnchor && !this.mediaMain.seeking && this.mediaMain.readyState >= 3) {
       const expected = this.clockAnchor.time + this.audioCtx.currentTime - this.clockAnchor.contextTime;
       if (Math.abs(expected - time) > 0.08) this.syncTimeline();
     }
     if (this.lastWaveTime === undefined || Math.abs(time - this.lastWaveTime) >= 0.1) {
-      for (const kind of ['rain', 'fire']) {
+      for (const kind of Object.keys(projectStore.state.tracks)) {
+        if (kind === 'main') continue;
         if (this.files[kind]) this.ws(kind).setTime(trackTiming(projectStore.state, kind, time).position);
       }
       this.lastWaveTime = time;
@@ -902,6 +1032,7 @@ class AudioEngine {
     this.bassFilter.frequency.value = 150;
 
     this.convolver = this.audioCtx.createConvolver();
+    this.convolver.normalize=false;
     this.convolver.buffer = this.buildImpulse(2.5);
 
     this.dryGain = this.audioCtx.createGain();
@@ -917,14 +1048,14 @@ class AudioEngine {
     this.bassFilter.connect(this.dryGain);
     this.bassFilter.connect(this.convolver);
     this.convolver.connect(this.wetGain);
-    this.dryGain.connect(this.trackNodes.main.gain);
-    this.wetGain.connect(this.trackNodes.main.gain);
+    this.dryGain.connect(this.trackNodes.main.effects.input);
+    this.wetGain.connect(this.trackNodes.main.effects.input);
 
     // AnalyserNode for audio-reactive visuals
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 2048;
     this.analyser.smoothingTimeConstant = 0.65;
-    this.masterGain.connect(this.analyser);
+    this.mixOutput.connect(this.analyser);
     this._arFreqData = new Uint8Array(this.analyser.frequencyBinCount);
 
     this.graphReady = true;
@@ -968,13 +1099,19 @@ class AudioEngine {
   }
 
   buildImpulse(seconds) {
-    const length = Math.floor(this.audioCtx.sampleRate * seconds);
-    const impulse = this.audioCtx.createBuffer(2, length, this.audioCtx.sampleRate);
+    // ConvolverNode requires an impulse at the AudioContext's sample rate.
+    const sr=this.audioCtx.sampleRate,length=Math.floor(sr*seconds);
+    const impulse = this.audioCtx.createBuffer(2,length,sr);
+    let seed=PROJECT_SCHEMA.trackEffects.impulseSeed;
     for (let channel = 0; channel < 2; channel++) {
       const data = impulse.getChannelData(channel);
+      let energy=0;
       for (let i = 0; i < length; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.0);
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+        data[i] = (seed/4294967296 * 2 - 1) * Math.pow(1 - i / length, 3.0);
+        energy+=data[i]*data[i];
       }
+      const scale=1/Math.sqrt(energy);for(let i=0;i<length;i++)data[i]*=scale;
     }
     return impulse;
   }
@@ -996,12 +1133,13 @@ class AudioEngine {
     if (!this.graphReady) return;
 
     const preset = TONE_PRESETS[tone] || TONE_PRESETS.none;
+    if(this.activeTone!==tone){this.source.disconnect(this.activeTone==='none'?this.presenceFilter:this.highpassFilter);this.source.connect(tone==='none'?this.presenceFilter:this.highpassFilter);this.activeTone=tone;}
     this.highpassFilter.frequency.value = preset.highpass;
     this.lowpassFilter.frequency.value = preset.lowpass;
     this.presenceFilter.gain.value = preset.presence;
     this.toneGain.gain.value = Math.pow(10, preset.makeup / 20);
 
-    this.bassFilter.gain.value = tone === 'radio' ? 0 : (Number(bass) / 100) * 15;
+    this.bassFilter.gain.value = tone === 'radio' ? 0 : bassGainDb(Number(bass));
 
     const mix = Number(reverb) / 100;
     this.wetGain.gain.value = mix;
@@ -1058,17 +1196,40 @@ class AudioEngine {
   }
 
   async play() {
-    if (!this.files.main || TRACK_IDS.some(kind => projectStore.state.tracks[kind].source && !this.files[kind])) return;
-    this.initWebAudio();
-    if (this.audioCtx?.state === 'suspended') await this.audioCtx.resume();
-    const range = this.getRange('main');
-    const time = this.wsMain.getCurrentTime();
-    if (time < range.start || time >= range.end - 0.005) this.seekTo(range.start);
-    try { await this.wsMain.play(); }
-    catch (error) { document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message})); }
+    if (!this.files.main || Object.keys(projectStore.state.tracks).some(kind => projectStore.state.tracks[kind].source && !this.files[kind])) return;
+    try {
+      const request=this.playRequest=(this.playRequest||0)+1;
+      await this.sourceProcessing?.ready();
+      await this.mainMontage?.ready();
+      if(request!==this.playRequest)return;
+      this.initWebAudio();
+      await this.preparedMix?.prepare(this.audioFxDraft??projectStore.state);
+      if(request!==this.playRequest)return;
+      const worklets=[...new Set([...Object.values(projectStore.state.tracks),...projectStore.state.audioBuses].filter(channel=>channel.audioFx.enabled).map(channel=>audioPresetWorkletSpec(audioPresetDefinition(channel.audioFx))).filter(Boolean))];
+      if(this.audioCtx&&worklets.length){
+        await Promise.all(worklets.map(spec=>prepareAudioPresetWorkletContext(this.audioCtx,spec)));
+        if(request!==this.playRequest)return;
+        this.scheduleTrackEffects();
+      }
+      if(this.audioCtx&&(this.audioCtx.audioWorklet||[...Object.values(projectStore.state.tracks),...projectStore.state.audioBuses].some(channel=>channel.sidechain.enabled||Object.values(channel.dynamics).some(stage=>stage.enabled)))){
+        await prepareDynamicsContext(this.audioCtx);
+        if(request!==this.playRequest)return;
+        this.scheduleTrackEffects();
+      }
+      if (this.audioCtx?.state === 'suspended') await this.audioCtx.resume();
+      await this.loudness?.prepare().catch(error=>document.dispatchEvent(new CustomEvent('studio-error',{detail:'Canlı LUFS ölçümü hazırlanamadı: '+error.message})));
+      if(request!==this.playRequest)return;
+      const range = this.getRange('main');
+      const time = this.wsMain.getCurrentTime();
+      if (time < range.start || time >= range.end - 0.005) this.seekTo(range.start);
+      await this.wsMain.play();
+    }
+    catch (error) {if(error.name==='AbortError'){this.preparedMix?.report('Ses FX hazırlığı iptal edildi veya zaman aşımına uğradı.');return;}document.dispatchEvent(new CustomEvent('studio-error', {detail:error.message}));}
   }
 
   pause() {
+    this.playRequest=(this.playRequest||0)+1;
+    if(this.preparedMix?.controller)this.preparedMix.cancel();
     this.wsMain.pause();
   }
 
@@ -1100,6 +1261,8 @@ class AudioEngine {
   }
 
   stopAll() {
+    this.playRequest=(this.playRequest||0)+1;
+    if(this.preparedMix?.controller)this.preparedMix.cancel();
     Object.keys(this.wsMap).forEach((kind) => {
       const ws = this.ws(kind);
       if (this.hasAudio(ws)) ws.pause();
@@ -1107,17 +1270,18 @@ class AudioEngine {
   }
   /* ── Audio-Reactive Analysis ───────────────────────────── */
   triggerBassHit(intensity = 1.0) {
-    this.audioReactive.bassHit = Math.max(this.audioReactive.bassHit, intensity);
-    this.audioReactive.bass = Math.max(this.audioReactive.bass, intensity * 0.7);
+    this.bassTest={intensity,at:performance.now()};this.visualProject=null;
   }
 
   visualSignal(time=this.getProjectTime()) {
     this.visualAnalyser ||= new VisualSignal();
     const project=projectStore.state,frame=Math.floor((time+1e-8)*Number(project.output.fps));
-    if(this.visualProject===project && this.visualFrame===frame)return this.audioReactive;
-    const buffers=Object.fromEntries(Object.keys(project.tracks).map(kind=>[kind,this.ws(kind)?.getDecodedData?.()]));
+    const buffers=Object.fromEntries(Object.keys(project.tracks).map(kind=>[kind,this.sourceBuffer(kind)]));
+    const entries=Object.entries(buffers),sameBuffers=this.visualBuffers&&entries.length===this.visualBuffers.length&&entries.every(([id,buffer],i)=>id===this.visualBuffers[i][0]&&buffer===this.visualBuffers[i][1]);
+    if(this.visualProject===project && this.visualFrame===frame&&sameBuffers&&!this.bassTest)return this.audioReactive;
     this.audioReactive=this.visualAnalyser.at(project,buffers,time);
-    this.visualProject=project;this.visualFrame=frame;
+    if(this.bassTest){const strength=this.bassTest.intensity*Math.max(0,1-(performance.now()-this.bassTest.at)/PROJECT_SCHEMA.limits.bassTestMs);if(!strength)this.bassTest=null;else{this.audioReactive.bassHitEnvelope=Math.max(this.audioReactive.bassHitEnvelope,strength);this.audioReactive.bassEnvelope=Math.max(this.audioReactive.bassEnvelope,strength*.7);for(const section of Object.values(this.audioReactive.effects??{}))for(const effect of Object.values(section)){effect.hit=Math.max(effect.hit,strength);effect.energy=Math.max(effect.energy,strength*.7);effect.flash=Math.max(effect.flash,strength);}}}
+    this.visualProject=project;this.visualFrame=frame;this.visualBuffers=entries;
     return this.audioReactive;
   }
   populateSpectrum(targetArray) {targetArray.set(this.visualSignal().spectrum);}

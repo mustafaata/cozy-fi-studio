@@ -2,6 +2,7 @@
 import math
 import os
 import re
+from project import SCHEMA
 
 from media_assets import probe
 from render_process import check_cancel, run_ffmpeg
@@ -15,7 +16,7 @@ def output_size(info, output):
     side = int(output["resolution"]) if output["resolution"] != "source" else min(info["width"], info["height"])
     width, height = (side * ratio, side) if ratio >= 1 else (side, side / ratio)
     width, height = max(2, 2 * math.floor(width / 2 + .5)), max(2, 2 * math.floor(height / 2 + .5))
-    if max(width, height) > 8192 or width * height > 33554432:
+    if max(width, height) > SCHEMA['limits']['outputEdge'] or width * height > SCHEMA['limits']['outputPixels']:
         raise ValueError("Çıkış boyutu çok büyük. 720p veya 1080p seçin.")
     return width, height
 

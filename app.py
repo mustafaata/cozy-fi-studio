@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 import tempfile
 import threading
 import uuid
@@ -126,6 +127,8 @@ YT_MAX_FILESIZE = 200 * 1024 * 1024  # 200 MB - ses odakli indirmeler icin comer
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
+app.config["MAX_FORM_MEMORY_SIZE"] = SCHEMA['limits']['projectJsonBytes']
+from worker_lifecycle import start_worker, media_slot
 install_security(app)
 
 # Render is kuyrugu: {job_id: {"state", "progress", "message", "download_url"}}
@@ -139,6 +142,7 @@ RENDER_CANCEL = {}
 YT_JOBS = {}
 YT_JOBS_LOCK = threading.Lock()
 YT_SLOT = threading.BoundedSemaphore(1)
+YT_SEARCH_SLOT = threading.BoundedSemaphore(2)
 MEDIA_JOBS = {}
 MEDIA_JOBS_LOCK = threading.Lock()
 MEDIA_SLOT = threading.BoundedSemaphore(1)
@@ -151,6 +155,21 @@ from package_api import create_package_api
 app.register_blueprint(create_package_api(engine._ffmpeg_bin, MEDIA_SLOT))
 from sample_api import create_sample_api
 app.register_blueprint(create_sample_api(RENDER_SLOT))
+from video_audio_api import create_video_audio_api
+app.register_blueprint(create_video_audio_api(engine._ffmpeg_bin, MEDIA_SLOT))
+from media_operations import MediaOperations
+MEDIA_OPERATIONS=MediaOperations()
+app.register_blueprint(MEDIA_OPERATIONS.api)
+from audio_alignment import create_alignment_api
+app.register_blueprint(create_alignment_api(engine._ffmpeg_bin, MEDIA_SLOT,MEDIA_OPERATIONS))
+from motion_tracking import create_tracking_api
+app.register_blueprint(create_tracking_api(engine._ffmpeg_bin, MEDIA_SLOT,MEDIA_OPERATIONS))
+from audio_warp_api import create_audio_warp_api
+app.register_blueprint(create_audio_warp_api(MEDIA_SLOT,MEDIA_OPERATIONS))
+from loudness_api import create_loudness_api
+app.register_blueprint(create_loudness_api(engine._ffmpeg_bin,RENDER_SLOT,engine.process_dsp))
+from reactive_api import create_reactive_api
+app.register_blueprint(create_reactive_api(engine._ffmpeg_bin,RENDER_SLOT,engine.process_dsp))
 
 
 @app.route("/api/lyrics/models")
@@ -313,6 +332,9 @@ def transcribe_lyrics():
                 if line["start"] is not None:
                     line["start"] = round(line["start"] + start, 3)
                     line["end"] = round(line["end"] + start, 3)
+                    for word in line.get("words", []):
+                        word["start"] = round(word["start"] + start, 3)
+                        word["end"] = round(word["end"] + start, 3)
             result["lines"] = validate_lines(result["lines"], SCHEMA["lyricLimits"])
             check_cancel(cancel)
             update(state="done", progress=100, message="Taslak hazir" if result["lines"] else "Soz bulunamadi", result=result)
@@ -323,7 +345,10 @@ def transcribe_lyrics():
             with LYRIC_LOCK:
                 LYRIC_CANCEL.pop(job_id, None)
             LYRIC_SLOT.release()
-    threading.Thread(target=worker, daemon=True).start()
+    def rollback():
+        shutil.rmtree(work_dir,ignore_errors=True)
+        with LYRIC_LOCK:LYRIC_CANCEL.pop(job_id,None);LYRIC_JOBS.pop(job_id,None)
+    start_worker(worker,LYRIC_SLOT,rollback)
     return jsonify(job_id=job_id), 202
 
 
@@ -354,9 +379,10 @@ def import_media():
         return jsonify(message="Goruntu dosyasi veya adresi gerekli."), 400
     if not MEDIA_SLOT.acquire(blocking=False):
         return jsonify(message="Bir goruntu hazirlaniyor. Tamamlandiginda yeniden deneyin."), 429
-    work_dir = tempfile.mkdtemp(prefix="cozy_media_")
-    source = os.path.join(work_dir, "source")
+    work_dir = None
     try:
+        work_dir = tempfile.mkdtemp(prefix="cozy_media_")
+        source = os.path.join(work_dir, "source")
         if upload and upload.filename:
             upload.save(source)
             if not os.path.getsize(source):
@@ -367,7 +393,8 @@ def import_media():
             name = "Uzak goruntu"
     except Exception as exc:
         MEDIA_SLOT.release()
-        shutil.rmtree(work_dir, ignore_errors=True)
+        if work_dir:
+            shutil.rmtree(work_dir, ignore_errors=True)
         return jsonify(message=public_error(exc)), 400
     job_id = uuid.uuid4().hex
     def update(**fields):
@@ -389,7 +416,10 @@ def import_media():
         finally:
             shutil.rmtree(work_dir, ignore_errors=True)
             MEDIA_SLOT.release()
-    threading.Thread(target=worker, daemon=True).start()
+    def rollback():
+        shutil.rmtree(work_dir,ignore_errors=True)
+        with MEDIA_JOBS_LOCK:MEDIA_JOBS.pop(job_id,None)
+    start_worker(worker,MEDIA_SLOT,rollback)
     return jsonify(job_id=job_id), 202
 
 
@@ -398,6 +428,22 @@ def media_job(job_id):
     with MEDIA_JOBS_LOCK:
         job = MEDIA_JOBS.get(job_id)
         return (jsonify(dict(job)), 200) if job else (jsonify(message="Goruntu isi bulunamadi."), 404)
+
+
+@app.route("/api/media/library")
+def media_library():
+    try:
+        return jsonify(items=media_assets.library_assets())
+    except (OSError, ValueError) as exc:
+        return jsonify(message=public_error(exc)), 400
+
+
+@app.route("/api/media/<asset_id>/thumbnail")
+def media_thumbnail(asset_id):
+    try:
+        return send_file(media_assets.thumbnail(asset_id, engine._ffmpeg_bin()), mimetype="image/jpeg", conditional=True)
+    except (ValueError, FileNotFoundError, OSError, subprocess.SubprocessError) as exc:
+        return jsonify(message=public_error(exc)), 404
 
 
 @app.route("/api/media/<asset_id>")
@@ -450,7 +496,9 @@ def media_preview_quality(asset_id):
             MEDIA_SLOT.release()
         with MEDIA_JOBS_LOCK:
             MEDIA_JOBS[job_id].update(result)
-    threading.Thread(target=worker, daemon=True).start()
+    def rollback():
+        with MEDIA_JOBS_LOCK:MEDIA_JOBS.pop(job_id,None)
+    start_worker(worker,MEDIA_SLOT,rollback)
     return jsonify(state="running", job_id=job_id), 202
 
 
@@ -577,6 +625,8 @@ def giphy_search():
 def render_media():
     try:
         project = validate_project(json.loads(request.form.get("project", "null")))
+        from export_sections import section_render
+        project, export_range, export_name = section_render(project, request.form.get('sectionId'))
     except (ValueError, TypeError) as exc:
         return jsonify({"status": "error", "message": public_error(exc)}), 400
     main_file = request.files.get("main_file")
@@ -598,6 +648,8 @@ def render_media():
         overlay_path = resolve_overlay(project["overlay"]["asset"]) if project["overlay"]["asset"] else None
         if project["overlay"]["url"] and not overlay_path:
             raise ValueError("Ön plan görselini projeye yükleyin.")
+        from visual_assets import resolve_visual_assets
+        visual_paths = resolve_visual_assets(project)
     except (ValueError, FileNotFoundError) as exc:
         return jsonify({"status": "error", "message": public_error(exc)}), 400
 
@@ -608,7 +660,7 @@ def render_media():
 
     try:
         work_dir = tempfile.mkdtemp(prefix=f"lofi_{job_id}_")
-        paths = {"background": background_path, "clip_paths": clip_paths, "overlay": overlay_path}
+        paths = {"background": background_path, "clip_paths": clip_paths, "overlay": overlay_path, "visual_paths": visual_paths}
         for kind in project["tracks"].keys():
             paths[kind] = _save_upload(request.files.get(f"{kind}_file"), work_dir, kind)
     except Exception as exc:  # disk / izin hatasi
@@ -618,10 +670,11 @@ def render_media():
         return jsonify({"status": "error", "message": public_error(exc)}), 500
 
     settings = project
-    output_name = f"cozy_lofi_{job_id[:8]}.mp4"
+    output_name = f"{export_name or 'cozy_lofi'}_{job_id}.mp4"
     output_path = os.path.join(OUTPUT_DIR, output_name)
 
-    _set_job(job_id, state="running", progress=0, message="Siraya alindi", download_url=None)
+    _set_job(job_id, state="running", progress=0, message="Siraya alindi", download_url=None,
+             filename=(export_name+'.mp4') if export_name else output_name, output_name=output_name)
     cancel = threading.Event()
     with JOBS_LOCK:
         RENDER_CANCEL[job_id] = cancel
@@ -636,7 +689,7 @@ def render_media():
 
         try:
             ok, message = engine.process_and_render(
-                settings, paths, output_path, work_dir=work_dir, progress=report, cancel=cancel
+                settings, paths, output_path, work_dir=work_dir, progress=report, cancel=cancel, sample_range=export_range
             )
         except Exception as exc:  # motor icinde yakalanmayan her sey
             ok, message = False, public_error(exc)
@@ -645,14 +698,17 @@ def render_media():
 
         if ok:
             _set_job(job_id, state="done", progress=100,
-                     message="Video hazir", download_url=f"/download/{output_name}")
+                     message="Video hazir", download_url=f"/api/render/{job_id}/file")
         else:
             _set_job(job_id, state="cancelled" if cancel.is_set() else "error", message=message)
         with JOBS_LOCK:
             RENDER_CANCEL.pop(job_id, None)
         RENDER_SLOT.release()
 
-    threading.Thread(target=worker, daemon=True).start()
+    def rollback():
+        shutil.rmtree(work_dir,ignore_errors=True)
+        with JOBS_LOCK:RENDER_CANCEL.pop(job_id,None);JOBS.pop(job_id,None)
+    start_worker(worker,RENDER_SLOT,rollback)
     return jsonify({"status": "queued", "job_id": job_id})
 
 
@@ -685,6 +741,18 @@ def download_file(filename):
     if not path.startswith(os.path.abspath(OUTPUT_DIR) + os.sep) or not os.path.exists(path):
         return jsonify({"status": "error", "message": "Dosya bulunamadi."}), 404
     return send_file(path, as_attachment=True, download_name=safe)
+
+
+@app.get('/api/render/<job_id>/file')
+def render_file(job_id):
+    with JOBS_LOCK:
+        job = dict(JOBS[job_id]) if job_id in JOBS else None
+    if not job or job['state'] != 'done':
+        return jsonify(message='Tamamlanan çıktı bulunamadı.'), 404
+    path = os.path.join(OUTPUT_DIR, job['output_name'])
+    if not os.path.isfile(path):
+        return jsonify(message='Çıktı dosyası bulunamadı.'), 404
+    return send_file(path, as_attachment=True, download_name=job['filename'])
 
 
 # --------------------------------------------------------------------------- #
@@ -790,8 +858,17 @@ def _resolve_downloaded_path(ydl, info):
     return None
 
 
+from youtube_search import SearchClient
+
+
 @app.route("/api/youtube/search")
 def youtube_search():
+    if not YT_SEARCH_SLOT.acquire(blocking=False):return jsonify(message='İki arama sürüyor; tamamlandığında yeniden deneyin.'),429
+    try:return _youtube_search()
+    finally:YT_SEARCH_SLOT.release()
+
+
+def _youtube_search():
     query = (request.args.get("q") or "").strip()
     if not query:
         return jsonify({"status": "success", "items": []})
@@ -811,7 +888,7 @@ def youtube_search():
             "logger": _YtdlpQuietLogger(),
         }
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with SearchClient(ydl_opts) as ydl:
                 info = ydl.extract_info(query, download=False) or {}
                 vid_id = info.get("id") or ""
                 dur = info.get("duration")
@@ -843,7 +920,7 @@ def youtube_search():
         "logger": _YtdlpQuietLogger(),
     }
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with SearchClient(ydl_opts) as ydl:
             res = ydl.extract_info(f"ytsearch{limit}:{query}", download=False) or {}
             entries = res.get("entries") or []
             items = []
@@ -929,10 +1006,11 @@ def download_youtube():
                         raise RuntimeError("İndirilen video dosyası bulunamadı.")
 
                     _set_yt_job(job_id, progress=94, message="Önizleme hazırlanıyor…")
-                    media_info = media_assets.prepare_asset(
-                        file_path, clean_title, engine._ffmpeg_bin(),
-                        lambda msg: _set_yt_job(job_id, message=msg)
-                    )
+                    with media_slot(MEDIA_SLOT):
+                        media_info = media_assets.prepare_asset(
+                            file_path, clean_title, engine._ffmpeg_bin(),
+                            lambda msg: _set_yt_job(job_id, message=msg)
+                        )
                     _set_yt_job(job_id, state="done", progress=100, message="Video hazır",
                                type="video", media=media_info, filename=clean_title)
             except yt_dlp.utils.DownloadError as exc:
@@ -998,7 +1076,9 @@ def download_youtube():
         finally:
             YT_SLOT.release()
 
-    threading.Thread(target=worker, daemon=True).start()
+    def rollback():
+        with YT_JOBS_LOCK:YT_JOBS.pop(job_id,None)
+    start_worker(worker,YT_SLOT,rollback)
     return jsonify({"status": "queued", "job_id": job_id})
 
 

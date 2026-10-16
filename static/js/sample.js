@@ -29,7 +29,7 @@ class SampleComparison {
   refresh() {
     const valid=this.snapshot===this.key() && this.range && this.video.readyState>=2;
     this.el('sampleB').disabled=!valid;
-    this.el('sampleCreate').disabled=this.working || projectDuration(projectStore.state)<5 || !projectStore.state.background.asset || Object.keys(projectStore.state.tracks).some(k=>projectStore.state.tracks[k].source&&!audioEngine.files[k]);
+    this.el('sampleCreate').disabled=this.working || projectDuration(projectStore.state)<5 || (!projectStore.state.background.asset&&!projectStore.state.videoClips.length) || Object.keys(projectStore.state.tracks).some(k=>projectStore.state.tracks[k].source&&!audioEngine.files[k]);
     this.el('sampleCancel').classList.toggle('hidden',!this.working);
     this.el('sampleA').setAttribute('aria-pressed',String(this.side==='a'));
     this.el('sampleB').setAttribute('aria-pressed',String(this.side==='b'));
@@ -56,7 +56,7 @@ class SampleComparison {
       this.video.pause();this.side='a';
       if(wasB && resume && this.range && this.snapshot===this.key()) {
         const p=projectStore.state;
-        audioEngine.seekTo(p.tracks.main.start+(this.range.start+this.video.currentTime)*p.effects.speed);
+        audioEngine.seekProjectTime(this.range.start+this.video.currentTime);
         if(playing)audioEngine.play().catch(()=>{});
       }
     }

@@ -1,0 +1,356 @@
+{
+  "date": "2026-10-13",
+  "browser": "Playwright Chromium on Windows",
+  "benchmark": {
+    "method": "15 rAF-spaced real input events on mainVol, main inspector selected; synchronous dispatch time only",
+    "fixture": {
+      "audioTracks": 4,
+      "visualLayers": 4,
+      "videoClips": 2,
+      "audioBuses": 1,
+      "audioReturns": 1
+    },
+    "baselineMedianMs": 58.7,
+    "finalMedianMs": 14.7,
+    "finalMinMs": 10.7,
+    "finalMaxMs": 20.3,
+    "finalSamplesMs": [
+      20.3,
+      14.7,
+      10.7,
+      11.9,
+      14.7,
+      15.9,
+      12.3,
+      16.1,
+      16.9,
+      11.4,
+      15.6,
+      17.1,
+      15,
+      14.5,
+      13.5
+    ],
+    "pageErrors": [],
+    "limitations": "Deferred preview rendering and GPU work are excluded; this is not an FPS or device-independent guarantee."
+  },
+  "tests": {
+    "javascript": {
+      "passed": 246,
+      "failed": 0
+    },
+    "python": {
+      "projectAudioPassed": 21,
+      "contractPassed": 4,
+      "failed": 0
+    },
+    "browser": {
+      "distinctPassed": 46,
+      "newControllerScenarios": [
+        "test_marker_zoom_drag_cancel_keyboard_and_value_editor",
+        "test_numeric_escape_cancel_precision_and_readonly_warp",
+        "test_slip_numeric_scrub_updates_draft_and_escape_restores",
+        "test_selected_video_source_clocks_precision_and_select_shortcut",
+        "test_slider_units_fill_overlay_limits_and_choice_semantics",
+        "test_waveform_snap_pixel_radius_and_wheel_scroll_contract",
+        "test_unrelated_volume_change_keeps_clip_controls_and_viewport_stable"
+      ],
+      "newControllerServer": "Waitress with application CSP",
+      "existingWorkspaceScenarios": [
+        "test_loudness_real_analysis_audition_apply_undo_reopen_and_invalidation",
+        "test_sequence_mixed_create_local_edit_move_history_dissolve_and_reopen",
+        "test_sequence_nested_add_release_locks_canvas_precision_cancel_and_responsive",
+        "test_sequence_main_montage_detailed_split_and_new_text_stay_inside",
+        "test_sequence_reuse_shared_edits_detach_source_files_and_single_undo",
+        "test_layer_chain_editor_eq_drag_precision_reorder_bypass_save_and_added_track",
+        "test_main_montage_commands_clock_reconnect_and_lyrics",
+        "test_main_montage_drag_cancel_and_superseded_builds",
+        "test_advanced_automation_keyboard_list_cross_track_and_empty_box",
+        "test_volume_automation_edit_drag_undo_and_responsive_layout",
+        "test_saved_dynamic_channel_reconnects_with_automation",
+        "test_word_timing_numbers_keyboard_stamps_save_and_reopen",
+        "test_lyric_presets_replace_previous_beat_effects_and_box_choices_roundtrip",
+        "test_frame_units_keep_seconds_exact_and_follow_output_fps",
+        "test_frame_units_in_automation_lyrics_and_nullable_video_end",
+        "test_video_keyframe_lane_drag_cancel_keyboard_and_collision",
+        "test_canvas_transform_drag_scale_cancel_and_keyboard",
+        "test_mask_canvas_pointer_draft_cancel_keyboard_snapshot_and_layer_locks",
+        "test_slip_draft_comparison_pixels_apply_undo_and_reopen",
+        "test_slide_draft_neighbors_apply_single_undo_and_reopen",
+        "test_rolling_handle_drag_cancel_keyboard_touch_and_single_undo",
+        "test_video_audio_linked_moves_numeric_drag_unlink_align_bounds_and_lock",
+        "test_video_time_inspector_ramp_reverse_freeze_ripple_and_undo",
+        "test_visual_layer_sources_controls_groups_and_reopen",
+        "test_visual_layer_canvas_drafts_move_resize_keyboard_snapshot_and_external_cancel",
+        "test_visual_layer_video_clock_seek_hold_visibility_and_resource_reuse",
+        "test_audio_comp_selection_crossfade_preview_apply_history_reopen_and_regeneration",
+        "test_audio_comp_invalid_draft_cancel_dissolve_locks_and_responsive",
+        "test_lut_import_precision_draft_snapshot_compare_undo_remove_and_reopen",
+        "test_color_scopes_final_composition_includes_overlay_and_histogram_primaries",
+        "test_chroma_clip_original_frame_picker_numeric_controls_undo_and_cancel",
+        "test_clip_color_controls_copy_presets_one_undo_snapshot_and_reopen",
+        "test_clip_color_comparison_pixels_selected_clip_only_and_no_project_history",
+        "test_ripple_insert_unchecked_lanes_locked_controls_and_failure_history",
+        "test_audio_warp_canvas_precision_invalid_draft_cancel_locks_and_responsive",
+        "test_spectral_regions_preview_apply_original_history_and_reopen",
+        "test_spectral_brush_profile_auxiliary_source_cancel_locks_and_responsive",
+        "test_audio_routing_authoring_automation_locks_history_and_responsive",
+        "test_audio_routing_native_preview_matches_streaming_export"
+      ],
+      "existingWorkspaceServer": "WSGI test server with application CSP",
+      "broadRun": {
+        "passed": 38,
+        "failed": 1
+      },
+      "recheck": {
+        "passed": 1,
+        "failed": 0,
+        "scenario": "test_frame_units_in_automation_lyrics_and_nullable_video_end",
+        "reason": "Fixture now loads real media and asserts the selected canonical clip, matching source-field availability."
+      },
+      "finalTargetedRechecks": [
+        "test_selected_video_source_clocks_precision_and_select_shortcut",
+        "test_unrelated_volume_change_keeps_clip_controls_and_viewport_stable"
+      ],
+      "networkIsolation": "External lyric-search requests returned an empty item list; these scenarios do not exercise external lyric search."
+    }
+  },
+  "coldProductionCheck": {
+    "server": "Waitress with application CSP",
+    "cacheDisabled": true,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 256000,
+    "uploadBytesPerSecond": 128000,
+    "cases": [
+      {
+        "width": 1440,
+        "theme": "dark",
+        "samples": [
+          {
+            "cls": 0.0029697653436856998,
+            "width": 1440,
+            "scrollWidth": 1440,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0.0029697653436856998,
+            "width": 1440,
+            "scrollWidth": 1440,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      },
+      {
+        "width": 375,
+        "theme": "dark",
+        "samples": [
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      },
+      {
+        "width": 375,
+        "theme": "light",
+        "samples": [
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      }
+    ]
+  },
+  "responsive": {
+    "widths": [
+      320,
+      375,
+      768,
+      1024,
+      1440
+    ],
+    "themes": [
+      "dark",
+      "light"
+    ],
+    "horizontalPageOverflow": false
+  },
+  "notVerified": [
+    "physical phone",
+    "Safari/iOS",
+    "Firefox",
+    "screen reader speech output",
+    "network tunnel",
+    "every possible feature combination"
+  ],
+  "followup": {
+    "date": "2026-10-13",
+    "controllerBrowserTestsPassed": 9,
+    "controllerServer": "Waitress with application CSP",
+    "existingBrowserTestsPassed": 2,
+    "existingServer": "WSGI test server with application CSP",
+    "newScenarios": [
+      "test_precision_source_metadata_bounds_and_focused_refresh",
+      "test_marker_delete_keeps_focus_and_announces_last_removal"
+    ],
+    "existingRegressions": [
+      "test_video_keyframes_inspector_units_precision_and_reopen",
+      "test_canvas_transform_drag_scale_cancel_and_keyboard"
+    ],
+    "beforeCorrection": {
+      "failed": 2,
+      "reasons": [
+        "Precision +/- buttons remained enabled without a source.",
+        "Marker deletion lost focus instead of moving to the next marker."
+      ]
+    },
+    "afterCorrection": {
+      "passed": 11,
+      "failed": 0
+    },
+    "coverage": [
+      "Missing selected-clip metadata despite a loaded preview",
+      "Disabled precision +/- buttons without source information",
+      "Focused precision value follows undo",
+      "Blank precision value restores canonical value",
+      "Precision zoom lower/upper boundaries",
+      "Marker keyboard deletion moves focus to next visible marker",
+      "Last marker deletion via keyboard and button returns focus to add",
+      "Last deletion is announced by visible global live status"
+    ],
+    "note": "Previous JavaScript, Python, cold-load and benchmark records are retained from the preceding pass."
+  },
+  "unitControls": {
+    "date": "2026-10-14",
+    "javascriptPassed": 247,
+    "pythonLyricsPassed": 14,
+    "controllerBrowserTestsPassed": 12,
+    "controllerServer": "Waitress with application CSP",
+    "existingBrowserTestsPassed": 5,
+    "existingServer": "WSGI test server with application CSP",
+    "newScenarios": [
+      "test_frame_scrub_survives_lyric_row_replacement_and_cancels",
+      "test_unit_mirrors_preserve_readonly_refresh_and_visible_validation",
+      "test_db_silence_scrub_starts_quietly_and_keeps_full_gain_range"
+    ],
+    "existingRegressions": [
+      "test_frame_units_keep_seconds_exact_and_follow_output_fps",
+      "test_frame_units_in_automation_lyrics_and_nullable_video_end",
+      "test_video_keyframes_inspector_units_precision_and_reopen",
+      "test_word_timing_numbers_keyboard_stamps_save_and_reopen",
+      "test_advanced_automation_keyboard_list_cross_track_and_empty_box"
+    ],
+    "beforeCorrection": {
+      "frameScrubStartSeconds": 0.5,
+      "expectedStartSeconds": 0.9166666666666666,
+      "frameMirrorReadOnly": false,
+      "silentDbDragResultPercent": 112.20184543019633
+    },
+    "intermediateFinding": {
+      "storedFrameAlignedSeconds": 0.917,
+      "expectedFrameAlignedSeconds": 0.9166666666666666,
+      "reason": "Lyric repair rounded canonical timestamps to milliseconds."
+    },
+    "afterCorrection": {
+      "browserPassed": 17,
+      "failed": 0,
+      "silentDbDragVerifiedUpperBoundPercent": 0.001,
+      "silentScrubBaseDb": -120,
+      "quietLevelVerifiedDb": -140
+    },
+    "coverage": [
+      "Stable frame-field identity during lyric DOM replacement",
+      "Numeric scrub Escape and undo preserve frame-aligned values",
+      "Readonly propagation to frame and dB mirrors",
+      "Focused frame refresh when FPS changes",
+      "Visible validation messages for invalid frame and dB values",
+      "Silent gain scrub stays quiet and cancels to exact silence",
+      "Finite gains below -120 dB remain representable",
+      "SRT formatting retains millisecond output precision without changing canonical times"
+    ],
+    "limitations": "Earlier benchmark/cold-load records belong to the preceding pass; physical-device, Safari/iOS, Firefox and tunnel verification were not added."
+  },
+  "shortClipBounds": {
+    "date": "2026-10-14",
+    "javascriptPassed": 249,
+    "controllerBrowserTestsPassed": 15,
+    "controllerServer": "Waitress with application CSP",
+    "existingBrowserTestsPassed": 5,
+    "existingServer": "WSGI test server with application CSP",
+    "newScenarios": [
+      "test_short_clip_frames_respect_representable_bounds_without_changing_seconds",
+      "test_precision_fractional_boundaries_remain_valid_in_frames",
+      "test_precision_negative_pixel_axis_and_unit_switch_preserve_geometry"
+    ],
+    "beforeCorrection": {
+      "shortClipFrameValidity": false,
+      "fractionalPrecisionValidity": false
+    },
+    "followupFinding": "Disabling the focused frame input lost focus instead of moving it to the unit selector.",
+    "afterCorrection": {
+      "browserPassed": 20,
+      "failed": 0,
+      "canonicalShortClipEndSeconds": 0.05,
+      "displayedNearestValidIntegerFrameAt24Fps": 2,
+      "approximationLabel": true,
+      "noIntegerFrameIntervalSeconds": [
+        0.05,
+        0.06
+      ],
+      "noIntegerFrameInputDisabled": true,
+      "secondsUnitSelectorEnabled": true,
+      "focusTransferredToUnitSelector": true,
+      "pixelIncrementChangesActualRectangleByPixels": 1,
+      "pixelPercentSwitchPreservesPosition": true
+    },
+    "pureHelpers": [
+      "frameInputState",
+      "boundedDisplayValue"
+    ],
+    "responsive": {
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "horizontalPageOverflow": false
+    },
+    "visualReview": "375 px dark approximate-frame and light disabled-frame views inspected; seconds fallback placeholder fits.",
+    "limitations": "Previous Python, benchmark and cold-load results belong to their respective passes. Physical devices, Safari/iOS, Firefox, screen-reader speech and a network tunnel were not exercised."
+  }
+}

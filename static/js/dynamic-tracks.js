@@ -58,8 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
       window.selectSidebarTab(kind);
       if (event.detail === 0) return;
       const bounds = lane.getBoundingClientRect();
-      const time = Math.max(0, Math.min(1, (event.clientX - bounds.left) / Math.max(1, bounds.width))) * projectDuration(projectStore.state);
-      audioEngine.seekTo(projectStore.state.tracks.main.start + time * projectStore.state.effects.speed);
+      const time = window.timelineView.time((event.clientX - bounds.left) / Math.max(1, bounds.width));
+      audioEngine.seekProjectTime(time);
     });
     input.addEventListener('change', async () => {
       const file = input.files[0]; if (!file) return;
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bindLevel = (slider, number, key) => {
       const update = source => {
         if (source.value === '' || !source.validity.valid) { sync(); return; }
-        window.change(p => { p.tracks[kind][key] = Number(source.value); });
+        window.change(p => {const track=p.tracks[kind],value=Number(source.value);track[key]=value;if(key==='ducking')Object.assign(track.sidechain,{enabled:value>0,source:'t:main',character:'duck',depth:-.6*value});});
       };
       slider.addEventListener('pointerdown', () => projectStore.begin());
       slider.addEventListener('input', () => update(slider));
@@ -80,8 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     bindLevel(el(kind + 'Vol'), el(kind + 'VolOut'), 'volume');
     bindLevel(view.querySelector('.duck-range'), view.querySelector('.duck-out'), 'ducking');
+    for(const [key,label] of [['muted','Sessiz'],['solo','Solo']]){
+      const button=document.createElement('button');button.type='button';button.id=kind+'-'+key;button.className='track-switch';button.textContent=label;
+      button.addEventListener('click',()=>window.change(p=>{p.tracks[kind][key]=!p.tracks[kind][key];}));view.querySelector('.track-actions').append(button);
+    }
     entries.set(kind, {view, tab, article});
+    window.videoClipEditor?.audio?.mountAudio(kind,view.querySelector('.track-inspector'));
     window.mountAutomationEditor?.(kind);
+    window.mountLayerEffectsEditor?.(kind);
   }
   function sync() {
     const tracks = projectStore.state.tracks;
@@ -93,13 +99,22 @@ document.addEventListener('DOMContentLoaded', () => {
       for (const [selector, key] of [['.duck-range','ducking'], ['.duck-out','ducking']]) view.querySelector(selector).value = tracks[kind][key];
       el(kind + 'Vol').value = tracks[kind].volume;
       el(kind + 'VolOut').value = tracks[kind].volume;
+      for(const key of ['muted','solo']){const button=el(kind+'-'+key);button.setAttribute('aria-pressed',String(tracks[kind][key]));button.disabled=!tracks[kind].source;}
       el(kind + 'Name').textContent = tracks[kind].source?.name || '—';
-      view.querySelectorAll('input[type="range"]').forEach(slider => slider.style.setProperty('--fill', (Number(slider.value) / Number(slider.max) * 100) + '%'));
+      view.querySelectorAll('input[type="range"]').forEach(paintRange);
     }
     for (const [kind, entry] of entries) {
       if (tracks[kind]) continue;
       if (entry.view.classList.contains('active-view')) window.selectSidebarTab('main');
       for (const node of [entry.view, entry.tab, entry.article]) node.classList.add('hidden');
+      const retained=[...projectStore.past,...projectStore.future,projectStore.gesture].filter(Boolean).some(p=>Object.hasOwn(p.tracks,kind));
+      if(!retained){
+        window.AutomationEditors[kind]?.destroy();delete window.AutomationEditors[kind];
+        window.LayerEffectsEditors[kind]?.destroy();delete window.LayerEffectsEditors[kind];
+        window.videoClipEditor?.audio?.audioPanels.delete(kind);
+        audioEngine.destroyTrack(kind);delete TRACK_META[kind];delete window.lanes[kind];delete window.heads[kind];
+        for(const node of [entry.view,entry.tab,entry.article])node.remove();entries.delete(kind);
+      }
     }
     window.invalidateWorkspace?.();
   }

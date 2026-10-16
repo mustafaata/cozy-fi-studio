@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request, send_file
 import media_assets
 from project import TRACK_IDS, validate_project
 from project_package import MAX_PACKAGE_BYTES, build_package, unpack_package
+from temporary_media import TemporaryMedia
 
 
 def create_package_api(ffmpeg, media_slot):
@@ -49,7 +50,7 @@ def create_package_api(ffmpeg, media_slot):
                         upload = request.files.get(kind)
                         if not upload:
                             raise ValueError("Paket için bütün ses dosyalarını bağlayın.")
-                        path = Path(folder) / kind; upload.save(path); files[f"media/{kind}"] = path
+                        path = Path(folder) / uuid.uuid4().hex; upload.save(path); files[f"media/{kind}"] = path
                 if project["background"]["asset"]:
                     files["media/video"] = media_assets.source_path(project["background"]["asset"])
                 from overlay_assets import overlay_path
@@ -57,6 +58,13 @@ def create_package_api(ffmpeg, media_slot):
                     files["media/overlay"] = overlay_path(project["overlay"]["asset"])
                 for index, clip in enumerate(project["videoClips"]):
                     files[f"media/clip_{index:03d}"] = media_assets.source_path(clip["asset"])
+                for index, angle in enumerate(project['cameraAngles']):
+                    files[f'media/camera_{index:03d}'] = media_assets.source_path(angle['asset'])
+                from visual_assets import resolve_visual_assets
+                visual_paths = resolve_visual_assets(project)
+                for index, layer in enumerate(project['visualLayers']):
+                    if layer['type'] in ('video', 'image'):
+                        files[f'media/visual_{index:03d}'] = visual_paths[layer['id']]
                 result = tempfile.TemporaryFile()
                 build_package(result, project, files); result.seek(0)
             response = send_file(result, mimetype="application/zip", as_attachment=True, download_name="cozy-project.cozy", conditional=False)
@@ -81,13 +89,13 @@ def create_package_api(ffmpeg, media_slot):
             upload = request.files.get("file")
             if not upload:
                 raise ValueError("Proje paketi gerekli.")
-            temp = tempfile.TemporaryDirectory(prefix="cozy_unpack_", ignore_cleanup_errors=True)
+            temp = TemporaryMedia(prefix="cozy_unpack_")
             archive = Path(temp.name) / "input.cozy"; upload.save(archive)
             if archive.stat().st_size > MAX_PACKAGE_BYTES:
                 raise ValueError("Proje paketi 500 MB sınırını aşıyor.")
             project, files = unpack_package(archive, temp.name)
             archive.unlink()
-            if "media/video" in files or project["videoClips"]:
+            if "media/video" in files or project["videoClips"] or project['cameraAngles'] or any(layer['type'] == 'video' for layer in project['visualLayers']):
                 media_acquired = media_slot.acquire(blocking=False)
                 if not media_acquired:
                     return jsonify(message="Görüntü hazırlığı bitince paketi yeniden açın."), 429
@@ -97,6 +105,18 @@ def create_package_api(ffmpeg, media_slot):
                 for index, clip in enumerate(project["videoClips"]):
                     info = media_assets.prepare_asset(files[f"media/clip_{index:03d}"], f"Klip {index+1}", ffmpeg())
                     clip["asset"] = info["asset"]
+                for index, angle in enumerate(project['cameraAngles']):
+                    info = media_assets.prepare_asset(files[f'media/camera_{index:03d}'], angle['name'], ffmpeg())
+                    angle['asset'] = info['asset']
+                for index, layer in enumerate(project['visualLayers']):
+                    if layer['type'] == 'video':
+                        info = media_assets.prepare_asset(files[f'media/visual_{index:03d}'], layer['name'], ffmpeg())
+                        layer['asset'] = info['asset']
+            from overlay_assets import prepare_overlay
+            for index, layer in enumerate(project['visualLayers']):
+                if layer['type'] == 'image':
+                    info = prepare_overlay(Path(files[f'media/visual_{index:03d}']).read_bytes(), layer['name'])
+                    layer['asset'] = info['asset']
             if "media/overlay" in files:
                 from overlay_assets import prepare_overlay
                 info = prepare_overlay(Path(files["media/overlay"]).read_bytes(), project["overlay"]["name"])
@@ -122,7 +142,7 @@ def create_package_api(ffmpeg, media_slot):
             if not entry or kind not in entry["tracks"] or f"media/{kind}" not in entry["files"]:
                 return jsonify(message="Paket aktarımı bulunamadı; paketi yeniden açın."), 404
             entry["access"] = time.monotonic()
-            return send_file(entry["files"][f"media/{kind}"], mimetype="application/octet-stream", conditional=False)
+            return entry['temp'].send(entry["files"][f"media/{kind}"], mimetype="application/octet-stream", conditional=False)
 
     @api.delete("/api/project/package/<token>")
     def release_package(token):

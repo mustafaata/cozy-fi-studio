@@ -1,0 +1,35 @@
+class SubtitleTrackEditor {
+  constructor() {
+    this.draft=null;this.panel=document.createElement('details');this.panel.className='subtitle-track-editor lyric-tools';this.panel.innerHTML=`<summary>Altyazı dilleri ve çeviri</summary><label>Önizleme ve çıktı dili<select class="subtitle-active"></select></label><div class="clip-edit-fields"><label>Şerit adı<input type="text" class="subtitle-name" maxlength="160" value="English"></label><label>Dil kodu<input type="text" class="subtitle-language" maxlength="35" value="en" placeholder="tr, en, pt-BR"></label></div><div class="clip-actions"><button type="button" class="ghost subtitle-empty">Boş dil ekle</button><button type="button" class="ghost subtitle-copy">Etkin dili kopyala</button><button type="button" class="ghost subtitle-rename">Etkin dili adlandır</button><button type="button" class="ghost subtitle-delete">Etkin dili sil</button></div><label>Karşılaştırma dili<select class="subtitle-compare"></select></label><div class="subtitle-comparison"></div><button type="button" class="ghost subtitle-translate">Zamanları koruyan çeviri taslağı aç</button><div class="subtitle-translation" hidden><p>Soldaki kaynak metni sağda çevirin. Tüm satırlar dolduğunda yeni bir dil şeridi oluşur. Kelime zamanları yeni dilde tekrar düzenlenir.</p><div class="subtitle-draft-rows"></div><div class="clip-actions"><button type="button" class="ghost subtitle-apply">Yeni dile uygula</button><button type="button" class="ghost subtitle-discard">Taslağı iptal et</button></div></div><output role="status" class="subtitle-status"></output>`;
+    document.getElementById('lyricsPanel').prepend(this.panel);this.active=this.panel.querySelector('.subtitle-active');this.compare=this.panel.querySelector('.subtitle-compare');
+    this.active.addEventListener('change',()=>this.edit(p=>activateSubtitleTrack(p,this.active.value)));this.compare.addEventListener('change',()=>this.comparison());
+    for(const [action,copy] of [['empty',false],['copy',true]])this.panel.querySelector('.subtitle-'+action).addEventListener('click',()=>this.edit(p=>{const settings=copyProject(p.lyrics);if(!copy)settings.lines=[];addSubtitleTrack(p,this.name(),this.language(),settings);}));
+    this.panel.querySelector('.subtitle-rename').addEventListener('click',()=>this.edit(p=>{const track=p.subtitleTracks.find(t=>t.id===p.subtitles.active);if(!track)throw new Error('Önce bir dil şeridi ekleyin.');track.name=this.name();track.language=this.language();}));
+    this.panel.querySelector('.subtitle-delete').addEventListener('click',()=>this.edit(p=>{const id=p.subtitles.active,remaining=p.subtitleTracks.filter(t=>t.id!==id);if(remaining.length)activateSubtitleTrack(p,remaining[0].id);else p.subtitles.active='';p.subtitleTracks=remaining;}));
+    this.panel.querySelector('.subtitle-translate').addEventListener('click',()=>{this.draft={key:this.key(),settings:copyProject(projectStore.state.lyrics),texts:projectStore.state.lyrics.lines.map(()=>''),name:this.name(),language:this.language()};this.renderDraft();});
+    this.panel.querySelector('.subtitle-apply').addEventListener('click',()=>{const draft=this.draft;if(!draft)return;this.edit(p=>{if(this.key()!==draft.key)throw new Error('Kaynak altyazı değişti; yeni bir taslak açın.');addSubtitleTrack(p,draft.name,draft.language,subtitleTranslationSettings(draft.settings,draft.texts));});});
+    this.panel.querySelector('.subtitle-discard').addEventListener('click',()=>{this.draft=null;this.renderDraft();});
+    projectStore.addEventListener('change',()=>{if(this.draft&&this.draft.key!==this.key()){this.draft=null;this.report('Kaynak dil değişti; çeviri taslağı kapatıldı.');}this.refresh();});this.panel.addEventListener('toggle',()=>{if(this.panel.open)this.refresh();});document.addEventListener('project-will-open',()=>{this.draft=null;this.renderDraft();});this.refresh();
+  }
+  name(){return this.panel.querySelector('.subtitle-name').value.trim();}
+  language(){return this.panel.querySelector('.subtitle-language').value.trim();}
+  key(){return JSON.stringify([projectStore.state.subtitles.active,projectStore.state.lyrics]);}
+  report(message,error=false){this.panel.querySelector('.subtitle-status').textContent=message;if(error)document.dispatchEvent(new CustomEvent('studio-error',{detail:message}));}
+  edit(fn){const ok=window.change(fn);if(ok)this.report('Altyazı dilleri güncellendi.');else this.refresh();return ok;}
+  refresh() {
+    const p=projectStore.state,compare=this.compare.value;this.active.replaceChildren();this.compare.replaceChildren();this.option(this.compare,'','Karşılaştırma yok');
+    if(!p.subtitleTracks.length)this.option(this.active,'','Özgün altyazı');for(const track of p.subtitleTracks){this.option(this.active,track.id,`${track.name} · ${track.language}`);if(track.id!==p.subtitles.active)this.option(this.compare,track.id,`${track.name} · ${track.language}`);}this.active.value=p.subtitles.active;if([...this.compare.options].some(o=>o.value===compare))this.compare.value=compare;
+    this.panel.querySelector('.subtitle-rename').disabled=this.panel.querySelector('.subtitle-delete').disabled=!p.subtitleTracks.length;this.panel.querySelector('.subtitle-translate').disabled=!p.lyrics.lines.length;for(const key of ['empty','copy'])this.panel.querySelector('.subtitle-'+key).disabled=p.subtitleTracks.length>=PROJECT_SCHEMA.limits.subtitleTracks;
+    if(this.panel.open)this.comparison();this.renderDraft();
+  }
+  option(select,value,text){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+  comparison() {
+    const root=this.panel.querySelector('.subtitle-comparison');root.replaceChildren();if(!this.compare.value)return;
+    try{for(const {row,matches} of subtitleComparison(projectStore.state,this.compare.value)){const pair=document.createElement('div');pair.className='subtitle-pair';for(const text of [row.text,matches.map(r=>r.text).join('\n')||'—']){const p=document.createElement('p');p.textContent=text;pair.append(p);}root.append(pair);}}catch(error){this.report(error.message,true);}
+  }
+  renderDraft() {
+    this.panel.querySelector('.subtitle-translation').hidden=!this.draft;const root=this.panel.querySelector('.subtitle-draft-rows');root.replaceChildren();if(!this.draft)return;
+    this.draft.settings.lines.forEach((row,i)=>{const pair=document.createElement('div');pair.className='subtitle-pair';const source=document.createElement('p');source.textContent=row.text;const label=document.createElement('label');label.textContent=`${i+1}. çeviri`;const input=document.createElement('textarea');input.rows=2;input.maxLength=2*PROJECT_SCHEMA.lyricLimits.text;input.value=this.draft.texts[i];input.dataset.translationRow=String(i);input.addEventListener('input',()=>{if(this.draft)this.draft.texts[i]=input.value;});label.append(input);pair.append(source,label);root.append(pair);});
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{window.subtitleTrackEditor=new SubtitleTrackEditor();});

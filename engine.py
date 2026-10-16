@@ -16,7 +16,7 @@ except ImportError:
 from pydub import AudioSegment
 
 from pedalboard.io import AudioFile
-from project import validate_project
+from project import SCHEMA, validate_project
 from render_process import check_cancel
 
 TARGET_SR = 44100
@@ -71,13 +71,15 @@ def _get_convolver_impulse(sr=TARGET_SR, seconds=2.5):
     """Generate stereo impulse response matching Web Audio buildImpulse(2.5) with equal-power normalization."""
     if sr not in _IMPULSE_CACHE:
         length = int(sr * seconds)
-        rng = np.random.RandomState(42)
-        decay = (1.0 - np.arange(length, dtype=np.float32) / length) ** 3.0
-        ir_left = (rng.uniform(-1.0, 1.0, length).astype(np.float32)) * decay
-        ir_right = (rng.uniform(-1.0, 1.0, length).astype(np.float32)) * decay
-        ir_left /= max(1e-6, float(np.sqrt(np.sum(ir_left ** 2))))
-        ir_right /= max(1e-6, float(np.sqrt(np.sum(ir_right ** 2))))
-        _IMPULSE_CACHE[sr] = np.stack([ir_left, ir_right])
+        seed=SCHEMA['trackEffects']['impulseSeed'];channels=[]
+        for channel in range(2):
+            data=np.empty(length,dtype=np.float32)
+            for i in range(length):
+                seed=(seed*1664525+1013904223)&0xffffffff
+                data[i]=(seed/4294967296*2-1)*(1-i/length)**3
+            data/=max(1e-6,float(np.sqrt(np.sum(data.astype(np.float64)**2))))
+            channels.append(data)
+        _IMPULSE_CACHE[sr] = np.stack(channels)
     return _IMPULSE_CACHE[sr]
 
 
@@ -116,7 +118,8 @@ def _apply_convolver_reverb(samples, wet_amount, sr=TARGET_SR):
 def process_dsp(samples, settings):
     """Keep float headroom until the final mix ceiling; mirror Web Audio browser signal chain."""
     wet = settings["reverb"] / 100
-    bass = 0 if settings["tone"] == "radio" else settings["bass"] * 0.15
+    bass = (0 if settings["tone"] == "radio" else
+            settings["bass"] / SCHEMA["effects"]["bass"]["max"] * SCHEMA["audioControls"]["bassMaxGainDb"])
     effects = _tone_effects(settings["tone"])
     if bass != 0:
         effects.append(LowShelfFilter(cutoff_frequency_hz=150, gain_db=bass))
@@ -158,7 +161,7 @@ def process_and_render(data, files, output_mp4, work_dir=None, progress=None, ca
             duration = handle.frames / handle.samplerate
         clip_paths = files.get("clip_paths") or [files["background"]]
         render_canvas(data, clip_paths, audio, partial, work_dir, _ffmpeg_bin(), duration, report, cancel,
-                      sample_range=sample_range, files=files)
+                      sample_range=sample_range, files=files, dsp=process_dsp)
         check_cancel(cancel)
         os.replace(partial, output_mp4)
         # Publication is the completion boundary; a late cancellation cannot undo it.

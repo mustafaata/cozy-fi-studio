@@ -30,7 +30,7 @@ function mountBassControls(parent,section) {
           projectStore.update(p=>{
             p[section].bassControls[effect]={...p[section].bassControls[effect],[key]:Number(range.value)};
           });
-        }catch(error){report(error);refresh();}
+        }catch(error){report(error);refresh(true);}
       });
       row.append(title,output,range);fieldset.append(row);controls.push({key,range,output});
     }
@@ -41,9 +41,11 @@ function mountBassControls(parent,section) {
     });
     fieldset.append(reset);root.append(fieldset);groups.push({effect,fieldset,controls});
   }
-  function refresh() {
+  let refreshKey=null;
+  function refresh(force=false) {
     const style=projectStore.state[section],active=style.bassEffects?.length?style.bassEffects:
       style.bassEffect&&style.bassEffect!=='none'?[style.bassEffect]:[];
+    const key=JSON.stringify([active,style.bassControls]);if(force!==true&&key===refreshKey)return;refreshKey=key;
     root.hidden=!active.length;
     for(const {effect,fieldset,controls} of groups) {
       fieldset.hidden=!active.includes(effect);

@@ -4,6 +4,7 @@ from pathlib import Path
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
@@ -18,6 +19,20 @@ def dns(address):
 
 
 class RemoteTests(unittest.TestCase):
+    def test_import_setup_failure_releases_media_slot_for_retry(self):
+        slot = threading.BoundedSemaphore(1)
+        client = app.app.test_client()
+        with patch.object(app, 'MEDIA_SLOT', slot), patch.object(
+                app.tempfile, 'mkdtemp', side_effect=OSError('Temporary storage unavailable')):
+            for attempt in range(2):
+                with self.subTest(attempt=attempt), self.assertLogs('security', level='WARNING'):
+                    response = client.post('/api/media', data={'file': (io.BytesIO(b'video'), 'video.mp4')})
+                self.assertTrue(slot.acquire(blocking=False), 'Failed setup must release the media operation slot')
+                slot.release()
+                self.assertEqual(response.status_code, 400)
+        self.assertTrue(slot.acquire(blocking=False))
+        slot.release()
+
     def test_private_targets_and_schemes_rejected(self):
         for url in ('file:///tmp/x', 'http://user:pass@example.com/x', 'http://example.com:8000/x'):
             with self.assertRaises(ValueError):
@@ -38,7 +53,7 @@ class RemoteTests(unittest.TestCase):
         with patch.object(media.socket, 'getaddrinfo', side_effect=[dns('8.8.8.8'), dns('127.0.0.1')]), \
              patch.object(media.urllib3, 'HTTPSConnectionPool', return_value=Pool()) as pool:
             with self.assertRaises(ValueError):
-                media.download_public('https://example.com/video', 'unused')
+                media._download_public('https://example.com/video', 'unused')
             self.assertEqual(pool.call_count, 1)
             self.assertEqual(pool.call_args.args[0], '8.8.8.8')
             self.assertEqual(pool.call_args.kwargs['server_hostname'], 'example.com')
@@ -92,6 +107,25 @@ class AssetTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 media.prepare_asset(source,'bad',self.ffmpeg)
         self.assertFalse(media.ASSET_DIR.exists())
+
+    def test_library_and_thumbnail_only_expose_completed_assets(self):
+        source = self.fixture()
+        info = media.prepare_asset(source, 'Görüntü.mp4', self.ffmpeg)
+        incomplete = media.ASSET_DIR / ('f' * 64)
+        incomplete.mkdir()
+        (incomplete / 'metadata.json').write_text('{}')
+        items = media.library_assets()
+        self.assertEqual([item['asset'] for item in items], [info['asset']])
+        client = app.app.test_client()
+        self.assertEqual(client.get('/api/media/library').json['items'], items)
+        response = client.get('/api/media/' + info['asset'] + '/thumbnail')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, 'image/jpeg')
+        self.assertTrue(response.data.startswith(b'\xff\xd8'))
+        response.close()
+        with patch.object(media.subprocess, 'run', side_effect=AssertionError('Thumbnail cache miss')):
+            self.assertTrue(media.thumbnail(info['asset'], self.ffmpeg).is_file())
+        self.assertEqual(client.get('/api/media/' + 'f' * 64 + '/thumbnail').status_code, 404)
 
     def test_import_endpoint_and_range_stream(self):
         source=self.fixture()

@@ -1,0 +1,8 @@
+class LoudnessMonitor {
+  constructor(context,source){this.context=context;this.source=source;this.values={};this.running=false;this.transport=event=>{const action=event.detail.action;if(action==='seek')this.reset();if(action==='play')this.running=true;else if(['pause','finish'].includes(action))this.running=false;this.node?.port.postMessage({running:this.running});};document.addEventListener('studio-transport',this.transport);}
+  async prepare(){if(this.node)return;if(!this.context.audioWorklet||typeof AudioWorkletNode==='undefined')return;if(!this.pending){this.pending=this.context.audioWorklet.addModule('/static/js/loudness-worklet.js').then(()=>{const node=new AudioWorkletNode(this.context,'studio-loudness',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2],channelCount:2,channelCountMode:'explicit',processorOptions:{running:this.running}});this.node=node;this.sink=this.context.createGain();this.sink.gain.value=0;this.source.connect(node).connect(this.sink).connect(this.context.destination);node.port.onmessage=event=>{this.values=event.data;};node.addEventListener('processorerror',()=>this.failed());}).catch(error=>{this.pending=null;throw error;});}await this.pending;}
+  reset(){this.values={};this.node?.port.postMessage({reset:true});}
+  failed(){this.values={};this.pending=null;this.drop();document.dispatchEvent(new CustomEvent('studio-error',{detail:'Canlı LUFS ölçer durdu. Yeniden oynatın veya dosya analizini kullanın.'}));}
+  drop(){if(this.node){this.source.disconnect(this.node);this.node.disconnect();this.sink.disconnect();this.node.port.close();this.node=null;}}
+  disconnect(){document.removeEventListener('studio-transport',this.transport);this.drop();}
+}

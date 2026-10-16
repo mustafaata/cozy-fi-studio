@@ -2,6 +2,7 @@
 import hashlib
 import ipaddress
 import json
+import logging
 import math
 import os
 from pathlib import Path
@@ -20,6 +21,40 @@ from settings import ASSET_DIR, MAX_UPLOAD_BYTES
 MAX_REMOTE_BYTES = 80 * 1024 * 1024
 ASSET_RE = re.compile(r"^[a-f0-9]{64}$")
 PREVIEW_PROFILES = {"low": (640, 360, 30), "medium": (960, 540, 60), "high": (1280, 720, 60)}
+logger = logging.getLogger(__name__)
+
+
+def library_assets():
+    """Only completed, validated local video records enter the media picker."""
+    if not ASSET_DIR.is_dir():
+        return []
+    items = []
+    for folder in sorted(ASSET_DIR.iterdir(), key=lambda entry: entry.stat().st_mtime, reverse=True):
+        if not folder.is_dir() or not ASSET_RE.fullmatch(folder.name):
+            continue
+        try:
+            items.append(asset_info(folder.name))
+        except (ValueError, FileNotFoundError, OSError):
+            logger.warning("Incomplete media entry omitted from library: %s", folder.name)
+        if len(items) >= 128:
+            break
+    return items
+
+
+def thumbnail(asset_id, ffmpeg):
+    asset_info(asset_id)
+    folder = asset_path(asset_id)
+    destination = folder / "thumbnail.jpg"
+    if destination.is_file():
+        return destination
+    # Each request owns its temporary output; concurrent requests publish atomically.
+    with tempfile.TemporaryDirectory(prefix="thumb_", dir=folder) as temporary:
+        image = Path(temporary) / "thumbnail.jpg"
+        subprocess.run([ffmpeg, "-nostdin", "-y", "-v", "error", "-protocol_whitelist", "file,pipe",
+                        "-i", str(folder / "preview.mp4"), "-frames:v", "1", "-vf", "scale=240:-2",
+                        "-threads", "1", str(image)], capture_output=True, check=True, timeout=30)
+        os.replace(image, destination)
+    return destination
 
 
 def preview_scale(info, width, height):
@@ -90,7 +125,12 @@ def public_target(url):
     return parsed, addresses[0][4][0], port
 
 
-def download_public(url, destination):
+def download_public(url,destination):
+    from isolated_task import run_isolated
+    return run_isolated(_download_public,(url,str(destination)),timeout=90)
+
+
+def _download_public(url, destination):
     deadline = time.monotonic() + 90
     for _ in range(6):
         parsed, address, port = public_target(url)

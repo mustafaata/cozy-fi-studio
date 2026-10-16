@@ -33,25 +33,36 @@ function videoOutputSize(info, output) {
   if(output.aspect!=='source') {const [a,b]=output.aspect.split(':').map(Number);ratio=a/b;}
   const side=output.resolution==='source'?Math.min(info.width,info.height):Number(output.resolution);
   const w=ratio>=1?side*ratio:side,h=ratio>=1?side:side/ratio;
-  return {width:Math.max(2,2*Math.round(w/2)),height:Math.max(2,2*Math.round(h/2))};
+  const width=Math.max(2,2*Math.round(w/2)),height=Math.max(2,2*Math.round(h/2));
+  if(Math.max(width,height)>PROJECT_SCHEMA.limits.outputEdge||width*height>PROJECT_SCHEMA.limits.outputPixels)throw new Error('Çıkış boyutu çok büyük. Sabit bir en/boy oranı ve 720p veya 1080p seçin.');
+  return {width,height};
 }
 function videoTiming(project, info, time) {
   const v=project.video, end=v.end??info.duration;
   const rate=v.linkSpeed?project.effects.speed:v.speed;
-  const span=Math.max(.001,(end-v.start)/rate), fps=Number(project.output.fps);
+  if(end>info.duration+.001||end-v.start<.05-1e-8)return {valid:false,position:0,rate};
+  if(v.timeRemap?.freezeAt!=null&&(v.timeRemap.freezeAt<v.start||v.timeRemap.freezeAt>=end))return {valid:false,position:0,rate};
+  const map=videoTimeMap(v,info,rate),span=map.duration, fps=Number(project.output.fps);
   const period=Math.ceil(span*fps-1e-8)/fps;
   const elapsed=v.loop?videoPosition(time,period):Math.max(0,time);
-  const last=Math.max(v.start,end-1/info.fps);
-  const position=Math.min(last,v.start+elapsed*rate);
+  const last=videoLastFrame(v.start,end,info.fps);
+  const position=map.positionAt(elapsed);
   const duration=projectDuration(project);
   const fi=Math.min(duration,v.fadeIn),fo=Math.min(duration,v.fadeOut);
   const envelope=Math.max(0,Math.min(1,fi?time/fi:1,fo?(duration-time)/fo:1));
-  return {position,rate,period,envelope,start:v.start,end,held:position>=last,ended:!v.loop && time>=span,valid:end<=info.duration+.001 && end-v.start>=.05};
+  return {position,rate,period,envelope,start:v.start,end,seekDriven:map.seekDriven,held:map.seekDriven?elapsed>=span:position>=last,ended:!v.loop && time>=span,valid:end<=info.duration+.001 && end-v.start>=.05};
+}
+function videoCrop(info,v) {
+  return {x:info.width*(v.cropLeft??0)/100,y:info.height*(v.cropTop??0)/100,
+    width:info.width*(1-((v.cropLeft??0)+(v.cropRight??0))/100),
+    height:info.height*(1-((v.cropTop??0)+(v.cropBottom??0))/100)};
 }
 function videoRect(info, size, v) {
-  const scale=(v.fit==='contain'?Math.min:Math.max)(size.width/info.width,size.height/info.height)*v.zoom;
-  const width=info.width*scale,height=info.height*scale;
-  return {width,height,x:(size.width-width)*(v.positionX+1)/2,y:(size.height-height)*(v.positionY+1)/2};
+  const crop=videoCrop(info,v);
+  const scale=(v.fit==='contain'?Math.min:Math.max)(size.width/crop.width,size.height/crop.height)*v.zoom;
+  const width=crop.width*scale,height=crop.height*scale;
+  return {width,height,x:(size.width-width)*(v.positionX+1)/2+size.width*(v.translateX??0)/100,
+    y:(size.height-height)*(v.positionY+1)/2+size.height*(v.translateY??0)/100};
 }
 function videoColor(rgb, v, vhs, envelope=1) {
   const lum=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
@@ -77,12 +88,17 @@ class FrameCanvas {
   constructor(canvas, {fullResolution=false}={}) {
     this.fullResolution=fullResolution;
     this.canvas=canvas;
-    this.gl=canvas.getContext('webgl',{alpha:false,antialias:false,depth:false});
-    if(!this.gl) {
-      this.ctx=canvas.getContext('2d',{alpha:false});
-      if(!this.ctx)throw new Error('Tarayıcı canvas çizimini desteklemiyor.');
-      return;
-    }
+    this.ctx=canvas.getContext('2d',{alpha:false});
+    if(!this.ctx)throw new Error('Tarayıcı canvas çizimini desteklemiyor.');
+    this.initializeGpu();
+  }
+  initializeGpu() {
+    this.surface=document.createElement('canvas');
+    this.gl=this.surface.getContext('webgl',{alpha:false,antialias:false,depth:false});
+    if(!this.gl)return;
+    this.surface.addEventListener('webglcontextlost',event=>{event.preventDefault();this.gl=null;console.warn('Ana GPU çizicisi durdu; CPU önizlemesi kullanılıyor.');});
+    this.surface.addEventListener('webglcontextrestored',()=>this.initializeGpu());
+    try {
     const gl=this.gl;
     const shader=(type,code)=>{
       const item=gl.createShader(type);gl.shaderSource(item,code);gl.compileShader(item);
@@ -96,6 +112,7 @@ precision highp float;
 varying vec2 uv;
 uniform sampler2D image;
 uniform vec4 rect;
+uniform vec2 texelSize;
 uniform vec4 color;
 uniform float opacity;
 uniform bool vhs;
@@ -198,7 +215,7 @@ vec4 sampleBlurred(sampler2D tex, vec2 pos, vec2 texel, float r){
 void main(){
   vec2 pos=(uv-rect.xy)/rect.zw;
   if(pos.x<0. || pos.x>1. || pos.y<0. || pos.y>1.) {gl_FragColor=vec4(0.,0.,0.,1.);return;}
-  vec2 texel=vec2(1./rect.zw);
+  vec2 texel=texelSize;
 
   // ── Audio-Reactive Bass Pre-displacement (Combinable) ─────
   vec2 samplePos = pos;
@@ -629,7 +646,7 @@ void main(){
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
     const location=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(location);gl.vertexAttribPointer(location,2,gl.FLOAT,false,0,0);
     this.uniforms={};
-    for(const key of ['rect','color','opacity','vhs','hue','grain','vigStrength','blurRadius','time',
+    for(const key of ['texelSize','rect','color','opacity','vhs','hue','grain','vigStrength','blurRadius','time',
                        'temperature','liftShadows','lyricDimmer','filmOverlay','filmIntensity','letterbox',
                        'bassHit','bassEnergy','bassEffect','bassSensitivity','bassAttack',
                        'bassColor','chromaKey','chromaKeyColor','chromaKeySimilarity','chromaKeySmoothness','gaussianBlur',
@@ -657,6 +674,7 @@ void main(){
     gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(this.uniforms.image,0);
     gl.uniform1i(this.uniforms.spectrum,1);
+    }catch(error){this.gl=null;console.warn('Ana GPU çizicisi hazırlanamadı; CPU önizlemesi kullanılıyor.',error.message);}
   }
   resize(width,height) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -667,10 +685,11 @@ void main(){
     const w = Math.max(2, Math.round(width * scale)), h = Math.max(2, Math.round(height * scale));
     if(this.canvas.width !== w) this.canvas.width = w;
     if(this.canvas.height !== h) this.canvas.height = h;
+    if(this.surface){if(this.surface.width!==w)this.surface.width=w;if(this.surface.height!==h)this.surface.height=h;}
   }
   clear() {
     if(this.gl){this.gl.clearColor(0,0,0,1);this.gl.clear(this.gl.COLOR_BUFFER_BIT);}
-    else if(this.ctx)this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    if(this.ctx)this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
   }
   draw(video,project,info,time, signal=null) {
     if(video.readyState<2 || !info)return;
@@ -681,6 +700,7 @@ void main(){
     if(this.gl) {
       const gl=this.gl;gl.viewport(0,0,this.canvas.width,this.canvas.height);
       gl.uniform4f(this.uniforms.rect,x,y,w,h);
+      gl.uniform2f(this.uniforms.texelSize,1/(video.videoWidth||video.width||info.width),1/(video.videoHeight||video.height||info.height));
       gl.uniform4f(this.uniforms.color,v.brightness,v.contrast,v.saturation,v.gamma);
       gl.uniform1f(this.uniforms.opacity,timing.envelope);
       gl.uniform1i(this.uniforms.vhs,project.background.vhs?1:0);
@@ -766,21 +786,12 @@ void main(){
       // Upload video frame
       gl.bindTexture(gl.TEXTURE_2D,this.videoTex);
       gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,video);gl.drawArrays(gl.TRIANGLES,0,6);
+      this.ctx.drawImage(this.surface,0,0);
     } else {
       const width=this.canvas.width,height=this.canvas.height,ctx=this.ctx;
       ctx.fillStyle='black';ctx.fillRect(0,0,width,height);
       ctx.drawImage(video,x*width,y*height,w*width,h*height);
-      const processed=project.background.vhs || v.brightness!==0 || v.contrast!==1 || v.saturation!==1 || v.gamma!==1 || timing.envelope!==1;
-      if(processed) {
-        const frame=ctx.getImageData(0,0,width,height),data=frame.data;
-        const lut=Uint8Array.from({length:256},(_,n)=>videoColor([n,n,n],v,project.background.vhs,timing.envelope)[0]);
-        for(let row=Math.max(0,Math.ceil(y*height));row<Math.min(height,(y+h)*height);row++)
-          for(let col=Math.max(0,Math.ceil(x*width));col<Math.min(width,(x+w)*width);col++){
-            const i=(row*width+col)*4,lum=data[i]*.2126+data[i+1]*.7152+data[i+2]*.0722;
-            for(let c=0;c<3;c++)data[i+c]=lut[Math.max(0,Math.min(255,Math.round(lum+(data[i+c]-lum)*v.saturation)))];
-          }
-        ctx.putImageData(frame,0,0);
-      }
+      drawSoftwareFrame(ctx,project,v,{x:x*width,y:y*height,width:w*width,height:h*height},time,timing.envelope,signal);
     }
   }
 }

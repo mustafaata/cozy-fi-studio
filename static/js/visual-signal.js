@@ -1,16 +1,6 @@
 /* Time-addressed audio analysis: a seek and an export at the same time produce the same
  * visual pulse. Analyse the dry source mix so device volume/latency cannot alter it. */
-function automationValue(points, time, fallback) {
-  if (!points?.length) return fallback;
-  if (time <= points[0][0]) return points[0][1];
-  for (let i=1;i<points.length;i++) {
-    if (time<=points[i][0]) {
-      const [a,x]=points[i-1],[b,y]=points[i];
-      return x+(y-x)*(time-a)/(b-a);
-    }
-  }
-  return points.at(-1)[1];
-}
+function automationValue(points, time, fallback, left=false) {return curveValue(points,time,fallback,left);}
 
 const VISUAL_ENVELOPE_HZ=60;
 const VISUAL_RELEASE_SECONDS=.3;
@@ -40,44 +30,31 @@ class VisualSignal {
   constructor() {
     this.size=2048;
     this.real=new Float64Array(this.size);
-    this.imag=new Float64Array(this.size);
+    this.imag=new Float64Array(this.size);this.rightReal=new Float64Array(this.size);this.rightImag=new Float64Array(this.size);
     this.window=Float64Array.from({length:this.size},(_,i)=>.42-.5*Math.cos(2*Math.PI*i/this.size)+.08*Math.cos(4*Math.PI*i/this.size));
     this.cache=new Map();
     this.bufferEntries=[];
   }
   spectrum(project, buffers, time) {
-    const n=this.size,re=this.real,im=this.imag;
-    re.fill(0);im.fill(0);
+    const n=this.size,re=this.real,im=this.imag,rr=this.rightReal,ri=this.rightImag;
+    re.fill(0);im.fill(0);rr.fill(0);ri.fill(0);
     for (const [kind,buffer] of Object.entries(buffers)) {
       const track=project.tracks[kind];
       if(!buffer || !track || !trackAudible(project,kind))continue;
       const timing=trackTiming(project,kind,time);
       if(!timing.active)continue;
-      const gain=automationValue(track.automation.volume,time,track.volume)/100*timing.envelope*project.master.volume/100;
+      const bus=project.audioBuses.find(b=>b.id===track.bus),groupGain=bus?automationValue(bus.automation.volume,time,bus.volume)/100:1;
+      const gain=automationValue(track.automation.volume,time,track.volume)/100*timing.envelope*project.master.volume/100*groupGain;
       const data=buffer.getChannelData(0),right=buffer.numberOfChannels>1?buffer.getChannelData(1):data;
       const rate=kind==='main' && project.effects.preservePitch?1:timing.rate;
       for(let i=0;i<n;i++) {
         const pos=Math.floor((timing.position+(i-n)/44100*rate)*buffer.sampleRate);
-        if(pos>=0 && pos<data.length)re[i]+=(data[pos]+right[pos])*.5*gain;
+        if(pos>=0 && pos<data.length){re[i]+=data[pos]*gain;rr[i]+=right[pos]*gain;}
       }
     }
-    for(let i=0;i<n;i++)re[i]*=this.window[i];
-    for(let i=1,j=0;i<n;i++) {
-      let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;
-      if(i<j)[re[i],re[j]]=[re[j],re[i]];
-    }
-    for(let len=2;len<=n;len<<=1) {
-      const angle=-2*Math.PI/len,wr=Math.cos(angle),wi=Math.sin(angle);
-      for(let i=0;i<n;i+=len) {
-        let xr=1,xi=0;
-        for(let j=0;j<len/2;j++) {
-          const a=i+j,b=a+len/2,br=re[b]*xr-im[b]*xi,bi=re[b]*xi+im[b]*xr;
-          re[b]=re[a]-br;im[b]=im[a]-bi;re[a]+=br;im[a]+=bi;
-          [xr,xi]=[xr*wr-xi*wi,xr*wi+xi*wr];
-        }
-      }
-    }
-    return Uint8Array.from({length:n/2},(_,i)=>Math.max(0,Math.min(255,(20*Math.log10(Math.max(1e-8,Math.hypot(re[i],im[i])/n))+100)/70*255)));
+    for(let i=0;i<n;i++){re[i]*=this.window[i];rr[i]*=this.window[i];}
+    audioFFT(re,im);audioFFT(rr,ri);
+    return Uint8Array.from({length:n/2},(_,i)=>Math.max(0,Math.min(255,(20*Math.log10(Math.max(1e-8,Math.hypot(re[i],im[i],rr[i],ri[i])/Math.SQRT2/n))+100)/70*255)));
   }
   at(project,buffers,time) {
     // Quantization removes dependence on display refresh rate and RAF scheduling.

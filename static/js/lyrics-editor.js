@@ -5,11 +5,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const preview=new LyricsPreview();
   const report=(text,error=false)=>document.dispatchEvent(new CustomEvent(error?'studio-error':'studio-status',{detail:text}));
   const change=fn=>{try{projectStore.update(fn);return true;}catch(error){report(error.message,true);refresh();return false;}};
-  const sourceTime=()=>projectStore.state.tracks.main.start+audioEngine.getProjectTime()*projectStore.state.effects.speed-projectStore.state.lyrics.offset;
-  const duration=()=>projectStore.state.tracks.main.source?.duration||0;
+  const sourceTime=()=>lyricClockTime(projectStore.state,audioEngine.getProjectTime());
+  const duration=()=>lyricClockDuration(projectStore.state);
+  const rawSourceDuration=()=>projectStore.state.tracks.main.source?.duration||0;
+  const seekLyricTime=time=>projectStore.state.lyrics.timeBase==='project'?audioEngine.seekProjectTime(time+projectStore.state.lyrics.offset):audioEngine.seekSourceTime(time+projectStore.state.lyrics.offset);
   const currentSource=()=>JSON.stringify(projectStore.state.tracks.main.source);
-  const timingContext=()=>{const p=projectStore.state;return JSON.stringify([currentSource(),p.tracks.main.start,p.tracks.main.end,p.effects.speed,p.lyrics.offset]);};
+  const timingContext=()=>{const p=projectStore.state;return JSON.stringify([p.subtitles.active,currentSource(),p.tracks.main.start,p.tracks.main.end,p.mainClips,p.effects.speed,p.lyrics.offset,p.lyrics.timeBase]);};
+  const importContext=()=>JSON.stringify([timingContext(),projectStore.state.lyrics.lines]);
+  let importEpoch=0;
   const timed=()=>projectStore.state.lyrics.lines.find(r=>r.id===selected);
+  const wordEditor=new LyricWordEditor(document.getElementById('lyricWordEditor'),{
+    line:timed,time:sourceTime,report,seek:seekLyricTime,basis:()=>projectStore.state.lyrics.timeBase
+  });
   let issues=new Map(),reviewContext='',reviewFile=null;
   const reviewLoop=new LyricReviewLoop(audioEngine,()=>refreshReview());
   const reviewKey=()=>JSON.stringify([timingContext(),projectStore.state.lyrics.lines]);
@@ -77,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filter=el('lyricsReviewFilter').value||'all',reasons=issues.get(id)||[];
     return filter==='all'||(filter==='issues'?reasons.length>0:filter==='timing'?reasons.some(r=>['untimed','bounds','overlap'].includes(r)):reasons.includes(filter));
   };
-  function select(id) {if(selected!==id)reviewLoop.stop();selected=id;for(const row of list.children)row.classList.toggle('selected',row.dataset.id===id);refreshReview();refreshRange();}
+  function select(id) {if(selected!==id)reviewLoop.stop();selected=id;for(const row of list.children)row.classList.toggle('selected',row.dataset.id===id);refreshReview();refreshRange();wordEditor.refresh();}
   function refreshReview() {
     const reasons=issues.get(selected)||[],range=lyricReviewRange(projectStore.state,selected,sourceTime()+projectStore.state.lyrics.offset);
     el('lyricsReviewReason').textContent=reasons.map(r=>LYRIC_REVIEW_LABELS[r]).join(' · ') || (selected?'İnceleme sorunu yok':'Satır seçilmedi');
@@ -98,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines=projectStore.state.lyrics.lines,index=lines.findIndex(r=>r.id===selected);
     const ordered=[...lines.slice(index+1),...lines.slice(0,index+1)];
     const next=ordered.find(r=>(issues.get(r.id)||[]).length && filterMatches(r.id));
-    if(next){select(next.id);if(next.start!==null&&audioEngine.files.main)audioEngine.seekTo(next.start+projectStore.state.lyrics.offset);list.querySelector(`[data-id="${next.id}"]`)?.scrollIntoView({block:'nearest'});}
+    if(next){select(next.id);if(next.start!==null&&audioEngine.files.main)seekLyricTime(next.start);list.querySelector(`[data-id="${next.id}"]`)?.scrollIntoView({block:'nearest'});}
   }
   function approve(id=selected) {
     if(!id || (issues.get(id)||[]).some(r=>['untimed','bounds','overlap'].includes(r)))return;
@@ -115,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
     reviewLoop.start(lyricReviewRange(projectStore.state,selected,sourceTime()+projectStore.state.lyrics.offset));
   });
   audioEngine.wsMain.on('pause',()=>reviewLoop.stop());
+  document.addEventListener('studio-transport',event=>{
+    if(event.detail.action==='review-start'&&event.detail.origin!=='lyrics')reviewLoop.stop();
+  });
   audioEngine.wsMain.on('seeking',()=>{
     const range=reviewLoop.range,time=sourceTime()+projectStore.state.lyrics.offset;
     if(range&&!reviewLoop.seeking&&(time<range.start-.05||time>range.end+.05))reviewLoop.stop();
@@ -122,25 +132,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function rowField(type,value,label) {
     const input=document.createElement(type==='text'?'textarea':'input');
     input.setAttribute('aria-label',label);
-    if(type==='text'){input.rows=1;input.maxLength=PROJECT_SCHEMA.lyricLimits.text;}
-    else {input.type='number';input.min=0;input.max=86400;input.step=.01;input.placeholder='—';}
+    // HTML maxlength counts UTF-16 units; project limits count Unicode characters.
+    if(type==='text'){input.rows=1;input.maxLength=2*PROJECT_SCHEMA.lyricLimits.text;}
+    else {input.type='number';input.min=0;input.max=86400;input.step=.01;input.placeholder='—';input.dataset.timeUnit='';}
     input.value=value??'';return input;
   }
   function paintRows() {
-    const lines=projectStore.state.lyrics.lines,key=JSON.stringify([lines,currentSource(),projectStore.state.lyrics.offset]);
+    const lines=projectStore.state.lyrics.lines,key=JSON.stringify([lines,currentSource(),projectStore.state.lyrics.offset,projectStore.state.lyrics.timeBase]);
     if(key===rendered)return;rendered=key;
     if(!lines.some(r=>r.id===selected))selected=lines[0]?.id??null;
     const scroll=list.scrollTop;
     list.replaceChildren(...lines.map((line,index)=>{
       const row=document.createElement('div');row.className='lyric-row';row.dataset.id=line.id;row.setAttribute('role','listitem');row.classList.toggle('selected',selected===line.id);
       const jump=document.createElement('button');jump.type='button';jump.textContent=String(index+1);jump.title='Satıra git';
-      jump.addEventListener('click',()=>{select(line.id);if(line.start!==null)audioEngine.seekTo(line.start+projectStore.state.lyrics.offset);});
-      const start=rowField('number',line.start,'Satır başlangıcı · şarkı saniyesi'),end=rowField('number',line.end,'Satır bitişi · şarkı saniyesi'),text=rowField('text',line.text,'Şarkı sözü');
+      jump.addEventListener('click',()=>{select(line.id);if(line.start!==null)seekLyricTime(line.start);});
+      const basis=projectStore.state.lyrics.timeBase==='project'?'proje saniyesi':'şarkı saniyesi';
+      const start=rowField('number',line.start,`Satır başlangıcı · ${basis}`),end=rowField('number',line.end,`Satır bitişi · ${basis}`),text=rowField('text',line.text,'Şarkı sözü');
       const update=event=>{
         if(event.target===start){if(start.value==='')end.value='';else if(end.value==='')end.value=Math.min(duration()||86400,Number(start.value)+5);}
         if(event.target===end){if(end.value==='')start.value='';else if(start.value==='')start.value=Math.max(0,Number(end.value)-5);}
         if(!start.validity.valid || !end.validity.valid){report('Zaman geçersiz.',true);rendered='';refresh();return;}
-        if(!change(p=>{const row=p.lyrics.lines.find(r=>r.id===line.id);delete row.reviewed;Object.assign(row,{text:text.value,start:start.value===''?null:Number(start.value),end:end.value===''?null:Number(end.value)});p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());})){rendered='';refresh();}
+        if(!change(p=>{const row=p.lyrics.lines.find(r=>r.id===line.id),previous={...row};delete row.reviewed;Object.assign(row,{text:text.value,start:start.value===''?null:Number(start.value),end:end.value===''?null:Number(end.value)});retimeLyricWords(row,previous);p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());})){rendered='';refresh();}
       };
       for(const input of [start,end,text]){input.addEventListener('focus',()=>select(line.id));input.addEventListener('change',update);}
       for(const event of ['click','mouseup','select','input'])text.addEventListener(event,()=>{carets.set(line.id,{at:text.selectionStart,text:text.value});refreshBatch();});
@@ -153,9 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if(reasons.length) {const review=document.createElement('button');review.type='button';review.className='lyric-review';review.textContent=reasons.map(r=>LYRIC_REVIEW_LABELS[r]).join(' · ');review.title='Satırı incele';review.addEventListener('click',()=>select(line.id));row.append(review);}
       return row;
     }));list.scrollTop=scroll;
-    el('lyricsCount').textContent=`${lines.length} satır · ${lines.filter(r=>r.start!==null).length} zamanlı`;
+    el('lyricsCount').textContent=`${lines.length} satır · ${lines.filter(r=>r.start!==null).length} zamanlı · ${projectStore.state.lyrics.timeBase==='project'?'Proje zamanı':'Şarkı zamanı'}`;
+    list.setAttribute('aria-label',`${projectStore.state.lyrics.timeBase==='project'?'Proje':'Şarkı'} zamanına göre söz satırları`);
   }
-  function clock() {reviewLoop.tick(sourceTime()+projectStore.state.lyrics.offset);const line=activeLyric(projectStore.state,audioEngine.getProjectTime());for(const row of list.children)row.classList.toggle('active',row.dataset.id===line?.id);preview.draw();}
+  function clock() {wordEditor.clock();reviewLoop.tick(sourceTime()+projectStore.state.lyrics.offset);const line=activeLyric(projectStore.state,audioEngine.getProjectTime());for(const row of list.children)row.classList.toggle('active',row.dataset.id===line?.id);preview.draw();}
   function refresh() {
     if(reviewLoop.range&&(reviewContext!==reviewKey()||reviewFile!==audioEngine.files.main))reviewLoop.stop(true);
     issues=lyricReviewIssues(projectStore.state);
@@ -184,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Şarkı yüklendiğinde otomatik ara
       if(name) setTimeout(()=>el('lyricsSearch').click(), 200);
     }
-    paintRows();applyFilter();clock();el('lyricsEnabled').checked=projectStore.state.lyrics.enabled;
+    paintRows();wordEditor.refresh();applyFilter();clock();el('lyricsEnabled').checked=projectStore.state.lyrics.enabled;
     el('lyricsStamp').disabled=!audioEngine.files.main || !selected;el('lyricsEnd').disabled=!audioEngine.files.main || !selected;
     el('lyricsHold').disabled=!audioEngine.files.main || !selected;
     el('lyricsTranscribe').disabled=busy || !audioEngine.files.main || modelState?.available===false;
@@ -200,45 +213,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if(draft?.range){try{mergeLyricRangeDraft(projectStore.state,draft.range,draft.lines);el('lyricsDraftStatus').textContent=`${draft.range.start.toFixed(2)}–${draft.range.end.toFixed(2)} sn · ${draft.range.ids.length} satır → ${draft.lines.length} satır`;}catch(error){el('lyricsApplyDraft').disabled=true;el('lyricsDraftStatus').textContent=error.message;}}
   }
   function stamp(end=false) {
-    if(!audioEngine.files.main || !selected)return;
+    if(!audioEngine.files.main || !selected || !Number.isFinite(sourceTime()))return;
     const now=Math.round(sourceTime()*1000)/1000,lines=projectStore.state.lyrics.lines,index=lines.findIndex(r=>r.id===selected);
-    if(end){change(p=>{const row=p.lyrics.lines.find(r=>r.id===selected);delete row.reviewed;row.end=now;p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());});return;}
+    if(end){change(p=>{const row=p.lyrics.lines.find(r=>r.id===selected),previous={...row};delete row.reviewed;row.end=now;retimeLyricWords(row,previous);p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());});return;}
     if(change(p=>{p.lyrics.lines=stampLyric(p.lyrics.lines,selected,now,duration());})){select(lines[index+1]?.id??selected);list.querySelector(`[data-id="${selected}"]`)?.scrollIntoView({block:'nearest'});}
   }
   el('lyricsStamp').addEventListener('click',()=>stamp());el('lyricsEnd').addEventListener('click',()=>stamp(true));
   let held=null;
   const cancelHold=bindPointerHold(el('lyricsHold'),{
-    start:()=>{if(!selected || !audioEngine.files.main)return;held={id:selected,start:Math.max(0,sourceTime()),context:timingContext(),file:audioEngine.files.main};if(!audioEngine.wsMain.isPlaying())audioEngine.play();},
+    start:()=>{if(!selected || !audioEngine.files.main || !Number.isFinite(sourceTime()))return;held={id:selected,start:Math.max(0,sourceTime()),context:timingContext(),file:audioEngine.files.main,
+      clip:mainTimeline(projectStore.state).find(c=>audioEngine.getProjectTime()>=c.offset&&audioEngine.getProjectTime()<c.end)?.clip.id};if(!audioEngine.wsMain.isPlaying())audioEngine.play();},
     end:event=>{
       if(!held)return;const row=held;held=null;if(event?.type==='pointercancel' || event?.type==='blur')return;
       if(row.context!==timingContext() || row.file!==audioEngine.files.main)return;
+      if(projectStore.state.lyrics.timeBase!=='project'&&row.clip!==mainTimeline(projectStore.state).find(c=>audioEngine.getProjectTime()>=c.offset&&audioEngine.getProjectTime()<c.end)?.clip.id)return;
       const end=Math.min(duration(),sourceTime()),index=projectStore.state.lyrics.lines.findIndex(r=>r.id===row.id);
-      if(end-row.start<.01 || index<0)return;
+      if(!Number.isFinite(end) || end-row.start<.01 || index<0)return;
       const next=projectStore.state.lyrics.lines[index+1]?.id??row.id;
-      if(change(p=>{const line=p.lyrics.lines.find(r=>r.id===row.id);delete line.reviewed;Object.assign(line,{start:row.start,end,review:false});p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());})){select(next);}
+      if(change(p=>{const line=p.lyrics.lines.find(r=>r.id===row.id),previous={...line};delete line.reviewed;Object.assign(line,{start:row.start,end,review:false});retimeLyricWords(line,previous);p.lyrics.lines=repairLyricLines(p.lyrics.lines,duration());})){select(next);}
     }
   });
   el('lyricsEnabled').addEventListener('change',()=>change(p=>{p.lyrics.enabled=el('lyricsEnabled').checked;}));
   el('lyricsNewLine').addEventListener('click',()=>{const line=lyricLine('Yeni satır');selected=line.id;if(change(p=>p.lyrics.lines.push(line)))list.querySelector(`[data-id="${line.id}"] textarea`)?.focus();});
   el('lyricsAddText').addEventListener('click',()=>{
     try{
-      const p=projectStore.state,scope=el('lyricsTimebase').value,rows=parseLyrics(el('lyricsPaste').value,'auto',scope==='project'?projectDuration(p):duration());if(!rows.length)return;
-      for(const row of rows)if(row.start!==null){if(scope==='project'){row.start=p.tracks.main.start+row.start*p.effects.speed;row.end=p.tracks.main.start+row.end*p.effects.speed;}row.start-=p.lyrics.offset;row.end-=p.lyrics.offset;}
+      const p=projectStore.state,scope=el('lyricsTimebase').value||'source';
+      const parsed=parseLyrics(el('lyricsPaste').value,'auto',scope==='project'?projectDuration(p):rawSourceDuration());if(!parsed.length)return;
+      const rows=convertLyricTimeBase(p,parsed,scope,p.lyrics.timeBase||'source').map(row=>shiftLyricLine(row,-p.lyrics.offset));
       if(change(p=>{p.lyrics.lines=repairLyricLines([...p.lyrics.lines,...rows],duration());}))el('lyricsPaste').value='';
     }
     catch(error){report(error.message,true);}
   });
   el('lyricsImport').addEventListener('change',async event=>{
     const file=event.target.files[0];if(!file)return;
+    const token=++importEpoch,p=projectStore.state,key=importContext(),source=audioEngine.files.main,scope=el('lyricsTimebase').value;
     try {
       if(file.size>1024*1024)throw new Error('Söz dosyası çok büyük.');
-      const format=file.name.split('.').at(-1).toLowerCase();if(!['lrc','srt','txt'].includes(format))throw new Error('LRC, SRT veya TXT gerekli.');
-      const p=projectStore.state,key=currentSource(),scope=el('lyricsTimebase').value;
-      const rows=parseLyrics(await file.text(),format,scope==='source'?duration():projectDuration(p));
-      if(key!==currentSource())throw new Error('Şarkı değişti; dosyayı yeniden açın.');
-      if(scope==='project')for(const row of rows)if(row.start!==null){row.start=p.tracks.main.start+row.start*p.effects.speed;row.end=p.tracks.main.start+row.end*p.effects.speed;}
+      const format=file.name.split('.').at(-1).toLowerCase();if(['vtt','ass'].includes(format)){await subtitleFormatEditor.openFile(file,scope);return;}if(!['lrc','srt','txt'].includes(format))throw new Error('LRC, SRT, TXT, WebVTT veya ASS gerekli.');
+      const text=await file.text();
+      if(token!==importEpoch)return;
+      if(key!==importContext()||source!==audioEngine.files.main)throw new Error('Şarkı, zaman çizgisi veya sözler değişti; dosyayı yeniden açın.');
+      const rows=convertLyricTimeBase(p,parseLyrics(text,format,scope==='source'?(p.tracks.main.source?.duration||0):projectDuration(p)),scope,p.lyrics.timeBase||'source');
       change(p=>{p.lyrics.lines=rows;p.lyrics.offset=0;});
-    }catch(error){report(error.message,true);}finally{event.target.value='';}
+    }catch(error){if(token===importEpoch)report(error.message,true);}finally{if(token===importEpoch)event.target.value='';}
   });
   function download(format) {
     try{const text=exportLyrics(projectStore.state,format,el('lyricsTimebase').value),url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='sozler.'+format;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){report(error.message,true);}
@@ -256,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
       name: '⚡ Cyberpunk Neon',
       style: {
         font: 'Righteous', textTransform: 'uppercase', color: '#00ffff', outlineColor: '#000000',
-        outline: 3, glowColor: '#ff007f', glowIntensity: 80, bassEffect: 'glow', animation: 'pop',
+        outline: 3, glowColor: '#ff007f', glowIntensity: 80, bassEffects: ['glow'], bassEffect: 'glow', animation: 'pop',
         boxStyle: 'pill', background: '#050014', backgroundOpacity: 0.6
       }
     },
@@ -272,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
       name: '☕ Lo-Fi Vintage',
       style: {
         font: 'Caveat', textTransform: 'none', color: '#fff8e7', outlineColor: '#2b1e16',
-        outline: 1.5, glowColor: '#ffd1a4', glowIntensity: 20, bassEffect: 'pulse', animation: 'fade',
+        outline: 1.5, glowColor: '#ffd1a4', glowIntensity: 20, bassEffects: ['pulse'], bassEffect: 'pulse', animation: 'fade',
         boxStyle: 'none', backgroundOpacity: 0
       }
     },
@@ -361,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fxChips.forEach(chip => {
       const isAct = active.includes(chip.dataset.fx);
       chip.classList.toggle('active', isAct);
+      chip.setAttribute('aria-pressed',String(isAct));
       chip.style.borderColor = isAct ? 'var(--lamp)' : 'var(--line)';
       chip.style.background = isAct ? 'rgba(245, 166, 91, 0.2)' : 'transparent';
       chip.style.color = isAct ? '#fff' : 'var(--text)';
@@ -395,21 +413,24 @@ document.addEventListener('DOMContentLoaded', () => {
     ['letterSpacing','Harf aralığı',null,1],
     ['bassIntensity','Bas şiddeti · %',null,1],
     ['animation','Yazı geçişi',[['none','Anında'],['fade','Çapraz geçiş (Fade)'],['pop','Yumuşak büyüme (Pop)'],['slide','Akıcı kayma (Slide)']]],
+    ['wordAnimation','Kelime girişi',[['none','Tümü görünür'],['typewriter','Yazı makinesi'],['fade','Kelime kelime belir'],['pop','Kelime kelime büyü'],['slide','Kelime kelime kay']]],
+    ['wordEntrance','Kelime giriş süresi · proje sn',null,.01],
     ['color','Yazı rengi'],
     ['outlineColor','Çerçeve rengi'],
     ['outline','Çerçeve kalınlığı',null,.1],
     ['glowColor','Neon rengi'],
     ['glowIntensity','Neon ışıltısı',null,1],
-    ['boxStyle','Kutu stili',[['none','Kare Kutu'],['pill','Yuvarlak Hap']]],
+    ['boxStyle','Kutu stili',[['none','Kapalı'],['box','Kare Kutu'],['pill','Yuvarlak Hap']]],
     ['background','Kutu rengi'],
     ['backgroundOpacity','Kutu opaklığı',null,.05],
     ['align','Hizalama',[['left','Sol'],['center','Orta'],['right','Sağ']]],
     ['x','Yatay · %',null,1],
     ['y','Dikey · %',null,1],
     ['width','Satır genişliği · %',null,1],
-    ['offset','Öteleme · şarkı sn',null,.01]]) {
+    ['offset','Öteleme · söz zamanı sn',null,.01]]) {
     const row=document.createElement('label');row.className='edit-field';const name=document.createElement('span');name.textContent=label;
     const input=document.createElement(options?'select':'input'),spec=PROJECT_SCHEMA.lyrics[key];input.setAttribute('aria-label',label);
+    if(key==='offset')input.dataset.timeUnit='';
     if(options)for(const option of options){const o=document.createElement('option');o.value=Array.isArray(option)?option[0]:option;o.textContent=Array.isArray(option)?option[1]:option;input.append(o);}
     else if(spec.type==='number'){input.type='number';input.min=spec.min;input.max=spec.max;input.step=step;}
     else input.type='color';
@@ -429,12 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function autoStatus(text){el('lyricsAutoStatus').textContent=text;}
   function showDraft(result,range=null) {
-    draft={...result,range,lines:range?validateLyricLines(result.lines):repairLyricLines(result.lines,duration())};
+    draft={...result,range,lines:range?validateLyricLines(result.lines):repairLyricLines(result.lines,rawSourceDuration())};
     el('lyricsDraftBefore').classList.toggle('hidden',!range);
     el('lyricsDraftBeforeText').value=range?range.before.map(r=>`${r.start===null?'—':lyricTimestamp(r.start+range.offset,'lrc')+'–'+lyricTimestamp(r.end+range.offset,'lrc')}  ${r.text}`).join('\n'):'';
     el('lyricsDraftStatus').textContent='';
     el('lyricsApplyDraft').textContent=range?'Seçili satırları değiştir':'Taslağı kullan';
-    el('lyricsDraftText').value=draft.lines.map(r=>`${r.start===null?'—':lyricTimestamp(r.start,'lrc')+(range?'–'+lyricTimestamp(r.end,'lrc'):'')}  ${r.text}`).join('\n');
+    const displayTime=time=>range?.clock?range.clock.start+(time-range.start)/range.clock.rate:time;
+    el('lyricsDraftText').value=draft.lines.map(r=>`${r.start===null?'—':lyricTimestamp(displayTime(r.start),'lrc')+(range?'–'+lyricTimestamp(displayTime(r.end),'lrc'):'')}  ${r.text}`).join('\n');
     el('lyricsDraft').classList.remove('hidden');
     autoStatus(`${draft.lines.length} satır · ${draft.lines.filter(r=>r.review).length} kontrol · ${draft.language||draft.source||''}${draft.analyzedSeconds?` · ${Math.round(draft.analyzedSeconds)} sn tarandı`:''}`);
     refresh();
@@ -443,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const token=++searchEpoch,key=currentSource(),button=el('lyricsSearch');button.disabled=true;
     el('lyricsSearchResults').replaceChildren();el('lyricsSearchStatus').textContent='Aranıyor…';
     try {
-      const query=new URLSearchParams({track:el('lyricsSearchTrack').value.trim(),artist:el('lyricsSearchArtist').value.trim(),duration:String(duration())});
+      const query=new URLSearchParams({track:el('lyricsSearchTrack').value.trim(),artist:el('lyricsSearchArtist').value.trim(),duration:String(rawSourceDuration())});
       const response=await fetch('/api/lyrics/search?'+query),body=await response.json();
       if(token!==searchEpoch || key!==currentSource())return;
       if(!response.ok)throw new Error(body.message||'Sözler alınamadı.');
@@ -456,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if(key!==currentSource())return;
           try {
             invalidate();sourceFile=audioEngine.files.main;sourceKey=currentSource();
-            const rows=parseLyrics(item.synced||item.plain,item.synced?'lrc':'txt',duration());
+            const rows=parseLyrics(item.synced||item.plain,item.synced?'lrc':'txt',rawSourceDuration());
             if(!item.closeMatch)rows.forEach(r=>{r.review=true;});
             showDraft({lines:rows,source:'LRCLIB'});
           }catch(error){el('lyricsSearchStatus').textContent=error.message;}
@@ -501,13 +523,15 @@ document.addEventListener('DOMContentLoaded', () => {
   el('lyricsApplyDraft').addEventListener('click',()=>{
     if(!draft || sourceFile!==audioEngine.files.main || sourceKey!==currentSource())return;
     const result=draft;
-    if(change(p=>{if(result.range)p.lyrics.lines=mergeLyricRangeDraft(p,result.range,result.lines);else{p.lyrics.lines=repairLyricLines(copyProject(result.lines),duration());p.lyrics.offset=0;p.lyrics.enabled=true;}})){draft=null;rangeJob=null;el('lyricsDraft').classList.add('hidden');report('Söz taslağı uygulandı.');}
+    if(change(p=>{if(result.range)p.lyrics.lines=mergeLyricRangeDraft(p,result.range,result.lines);else{p.lyrics.lines=convertLyricTimeBase(p,repairLyricLines(copyProject(result.lines),rawSourceDuration()),'source',p.lyrics.timeBase||'source');p.lyrics.offset=0;p.lyrics.enabled=true;}})){draft=null;rangeJob=null;el('lyricsDraft').classList.add('hidden');report('Söz taslağı uygulandı.');}
   });
 
   async function align() {
     if(busy || !audioEngine.files.main) return;
     const p = projectStore.state;
-    const lines = p.lyrics.lines;
+    let lines;
+    try{lines=convertLyricTimeBase(p,p.lyrics.lines.map(r=>shiftLyricLine(r,p.lyrics.offset)),p.lyrics.timeBase||'source','source');}
+    catch(error){report(error.message,true);return;}
     if (lines.length === 0) {
       report('Önce metin eklemelisiniz.', true);
       return;
@@ -524,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = new FormData();
     form.append('file', sourceFile);
     form.append('language', el('lyricsLanguage').value);
-    form.append('lines', JSON.stringify(lines.map(r=>({...r, start:r.start===null?null:r.start+p.lyrics.offset, end:r.end===null?null:r.end+p.lyrics.offset}))));
+    form.append('lines', JSON.stringify(lines));
 
     try {
       const response = await fetch('/api/lyrics/align', {method: 'POST', body: form});
@@ -553,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function transcribe(range=null) {
     if(busy || !audioEngine.files.main)return;
     let reference;
-    try{const p=projectStore.state;reference=el('lyricsUseReference').checked?(range?range.before.map(r=>({...r,start:null,end:null,review:true,reviewed:undefined})):repairLyricLines(p.lyrics.lines.map(r=>r.start===null?{...r}:{...r,start:r.start+p.lyrics.offset,end:r.end+p.lyrics.offset}),duration())):[];}catch(error){autoStatus(error.message);return;}
+    try{const p=projectStore.state;reference=el('lyricsUseReference').checked?(range||p.lyrics.timeBase==='project'?(range?range.before:p.lyrics.lines).map(r=>{const next={...r,start:null,end:null,review:true,reviewed:undefined};delete next.words;return next;}):repairLyricLines(p.lyrics.lines.map(r=>shiftLyricLine(r,p.lyrics.offset)),rawSourceDuration())):[];}catch(error){autoStatus(error.message);return;}
     const token=++epoch,p=projectStore.state;sourceFile=audioEngine.files.main;sourceKey=currentSource();busy=true;draft=null;jobId=null;
     rangeJob=range;
     el('lyricsDraft').classList.add('hidden');el('lyricsAutoProgress').classList.remove('hidden');el('lyricsAutoProgress').value=0;autoStatus('Ses gönderiliyor');refresh();

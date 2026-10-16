@@ -1,0 +1,2327 @@
+{
+  "date": "2026-10-15",
+  "status": "complete",
+  "completedPresets": [
+    "VFX-01",
+    "VFX-02",
+    "VFX-03",
+    "VFX-04",
+    "VFX-05",
+    "VFX-06",
+    "VFX-07",
+    "VFX-08",
+    "VFX-09",
+    "VFX-10",
+    "VFX-11",
+    "VFX-12",
+    "VFX-13",
+    "VFX-14",
+    "VFX-15",
+    "VFX-16",
+    "VFX-17",
+    "VFX-18",
+    "VFX-19",
+    "VFX-20",
+    "VFX-21",
+    "VFX-22",
+    "VFX-23",
+    "VFX-24",
+    "VFX-25",
+    "VFX-26",
+    "VFX-27",
+    "VFX-28",
+    "VFX-29",
+    "VFX-30",
+    "VFX-31",
+    "VFX-32",
+    "VFX-33",
+    "VFX-34",
+    "VFX-35",
+    "VFX-36",
+    "VFX-37",
+    "VFX-38",
+    "VFX-39",
+    "VFX-40",
+    "VFX-41",
+    "VFX-42",
+    "VFX-43",
+    "VFX-44",
+    "VFX-45",
+    "VFX-46",
+    "VFX-47",
+    "VFX-48",
+    "VFX-49",
+    "VFX-50",
+    "AFX-01",
+    "AFX-02",
+    "AFX-03",
+    "AFX-04",
+    "AFX-05",
+    "AFX-06",
+    "AFX-07",
+    "AFX-08",
+    "AFX-09",
+    "AFX-10",
+    "AFX-11",
+    "AFX-12",
+    "AFX-13",
+    "AFX-14",
+    "AFX-15",
+    "AFX-16",
+    "AFX-17",
+    "AFX-18",
+    "AFX-19",
+    "AFX-20",
+    "AFX-21",
+    "AFX-22",
+    "AFX-23",
+    "AFX-24",
+    "AFX-25",
+    "AFX-26",
+    "AFX-27",
+    "AFX-28",
+    "AFX-29",
+    "AFX-30",
+    "AFX-31",
+    "AFX-32",
+    "AFX-33",
+    "AFX-34",
+    "AFX-35",
+    "AFX-36",
+    "AFX-37",
+    "AFX-38",
+    "AFX-39",
+    "AFX-40",
+    "AFX-41",
+    "AFX-42",
+    "AFX-43",
+    "AFX-44",
+    "AFX-45",
+    "AFX-46",
+    "AFX-47",
+    "AFX-48",
+    "AFX-49",
+    "AFX-50",
+    "TFX-01",
+    "TFX-02",
+    "TFX-03",
+    "TFX-04",
+    "TFX-05",
+    "TFX-06",
+    "TFX-07",
+    "TFX-08",
+    "TFX-09",
+    "TFX-10",
+    "TFX-11",
+    "TFX-12",
+    "TFX-13",
+    "TFX-14",
+    "TFX-15",
+    "TFX-16",
+    "TFX-17",
+    "TFX-18",
+    "TFX-19",
+    "TFX-20",
+    "TFX-21",
+    "TFX-22",
+    "TFX-23",
+    "TFX-24",
+    "TFX-25",
+    "TFX-26",
+    "TFX-27",
+    "TFX-28",
+    "TFX-29",
+    "TFX-30",
+    "TFX-31",
+    "TFX-32",
+    "TFX-33",
+    "TFX-34",
+    "TFX-35",
+    "TFX-36",
+    "TFX-37",
+    "TFX-38",
+    "TFX-39",
+    "TFX-40",
+    "TFX-41",
+    "TFX-42",
+    "TFX-43",
+    "TFX-44",
+    "TFX-45",
+    "TFX-46",
+    "TFX-47",
+    "TFX-48",
+    "TFX-49",
+    "TFX-50",
+    "ARX-01",
+    "ARX-02",
+    "ARX-03",
+    "ARX-04",
+    "ARX-05",
+    "ARX-06",
+    "ARX-07",
+    "ARX-08",
+    "ARX-09",
+    "ARX-10",
+    "ARX-11",
+    "ARX-12",
+    "ARX-13",
+    "ARX-14",
+    "ARX-15",
+    "ARX-16",
+    "ARX-17",
+    "ARX-18",
+    "ARX-19",
+    "ARX-20",
+    "ARX-21",
+    "ARX-22",
+    "ARX-23",
+    "ARX-24",
+    "ARX-25",
+    "ARX-26",
+    "ARX-27",
+    "ARX-28",
+    "ARX-29",
+    "ARX-30",
+    "ARX-31",
+    "ARX-32",
+    "ARX-33",
+    "ARX-34",
+    "ARX-35",
+    "ARX-36",
+    "ARX-37",
+    "ARX-38",
+    "ARX-39",
+    "ARX-40",
+    "ARX-41",
+    "ARX-42",
+    "ARX-43",
+    "ARX-44",
+    "ARX-45",
+    "ARX-46",
+    "ARX-47",
+    "ARX-48",
+    "ARX-49",
+    "ARX-50"
+  ],
+  "completedCount": 200,
+  "plannedCount": 200,
+  "remainingCount": 0,
+  "verification": {
+    "javascript": {
+      "count": 335,
+      "result": "pass",
+      "log": ".local/final-presets-js-verified.log"
+    },
+    "videoContract": {
+      "count": 10,
+      "result": "pass",
+      "suite": "tests/test_creative_video.py",
+      "log": ".local/reverse-echo-contract-final.log",
+      "note": "25 combined video/time/layer/project contracts."
+    },
+    "audioDsp": {
+      "count": 5,
+      "result": "pass",
+      "suite": "tests/test_audio_presets.py",
+      "log": ".local/distortion-audio-regression.log"
+    },
+    "legacyTrackEffects": {
+      "count": 8,
+      "result": "pass",
+      "log": ".local/audio-preset-regression.log"
+    },
+    "videoBrowser": {
+      "count": 4,
+      "result": "pass",
+      "log": ".local/preset-browser-regression-last.log"
+    },
+    "captionFocusAndStudioRegression": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/preset-layout-final.log"
+    },
+    "audioBrowserAndNativeDsp": {
+      "count": 8,
+      "result": "pass",
+      "log": ".local/distortion-prior-audio-ui.log",
+      "nativeExportSampleRates": [
+        8000,
+        44100
+      ],
+      "allTwentyPresets": true,
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ]
+    },
+    "realMp4": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/preset-export-verified.log"
+    },
+    "realWav": {
+      "count": 1,
+      "subcases": [
+        "track",
+        "bus"
+      ],
+      "result": "pass",
+      "log": ".local/audio-preset-wav.log",
+      "sampleRate": 44100
+    },
+    "textContract": {
+      "count": 4,
+      "result": "pass",
+      "log": ".local/text-kinetic-contract-final.log",
+      "allThirtyPresets": true,
+      "note": "Combined log has 13 text/video/project contract tests."
+    },
+    "textBrowser": {
+      "count": 4,
+      "result": "pass",
+      "log": ".local/material-ui-final.log",
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "note": "Combined log contains 16 scenarios: 6 material, 6 contour, 4 original text."
+    },
+    "sharedCatalogRegression": {
+      "count": 8,
+      "result": "pass",
+      "log": ".local/text-fx-catalog-regression.log"
+    },
+    "textRealMp4": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/text-fx-export-verified.log"
+    },
+    "productionPreview": {
+      "url": "http://127.0.0.1:5000/?studio=reactive-fields",
+      "status": 200,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+      "videoPresets": 30,
+      "audioPresets": 30,
+      "textPresets": 30,
+      "reactivePresets": 30,
+      "fieldScripts": {
+        "reactive-fx.js": {
+          "status": 200,
+          "cacheControl": "no-cache"
+        },
+        "reactive-fields.js": {
+          "status": 200,
+          "cacheControl": "no-cache"
+        },
+        "reactive-field-renderer.js": {
+          "status": 200,
+          "cacheControl": "no-cache"
+        },
+        "reactive-renderer.js": {
+          "status": 200,
+          "cacheControl": "no-cache"
+        },
+        "preset-browser.js": {
+          "status": 200,
+          "cacheControl": "no-cache"
+        }
+      }
+    },
+    "reactiveAnalysis": {
+      "count": 5,
+      "result": "pass",
+      "log": ".local/geometry-python-final.log",
+      "note": "Combined log contains 25 tests."
+    },
+    "audioTapRegression": {
+      "count": 38,
+      "includesReactiveAnalysisTests": 5,
+      "result": "pass",
+      "log": ".local/reactive-audio-regression.log"
+    },
+    "reactiveBrowser": {
+      "count": 4,
+      "result": "pass",
+      "log": ".local/geometry-ui-final.log",
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "allTwentyPresets": true,
+      "note": "Combined log contains 10 scenarios; 4 are original reactive tests."
+    },
+    "allPriorCatalogRegression": {
+      "count": 12,
+      "result": "pass",
+      "log": ".local/reactive-catalog-regression.log"
+    },
+    "reactiveRealMp4": {
+      "count": 2,
+      "subcases": 12,
+      "allTenPresets": true,
+      "result": "pass",
+      "log": ".local/reactive-export.log"
+    },
+    "opticalBrowserAndAllVideoGpuCpu": {
+      "count": 4,
+      "result": "pass",
+      "log": ".local/optics-streak-ui.log",
+      "allTwentyVideoPresets": true,
+      "transparentCompositing": true
+    },
+    "opticalContextRecoveryAndRuntimeFallback": {
+      "count": 1,
+      "result": "pass",
+      "log": ".local/optics-context-final.log",
+      "actualContextLossAndRestore": true,
+      "incompleteFramebuffer": true
+    },
+    "opticalRealMp4": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/optics-final-output.log",
+      "allTenOpticalPresets": true,
+      "note": "The combined log includes one additional context recovery test; this entry counts only the two MP4 tests."
+    },
+    "presetNameSearchAndStudioRegression": {
+      "count": 5,
+      "result": "pass",
+      "log": ".local/optics-search-regression.log"
+    },
+    "modulationRealWav": {
+      "count": 1,
+      "subcases": 10,
+      "result": "pass",
+      "log": ".local/modulation-mixer-regression.log",
+      "sampleRate": 44100,
+      "targets": [
+        "track",
+        "bus"
+      ],
+      "allFivePresets": true
+    },
+    "modulationMixerRegression": {
+      "count": 28,
+      "result": "pass",
+      "log": ".local/modulation-mixer-regression.log",
+      "includesModulationWavTests": 1
+    },
+    "distortionDsp": {
+      "count": 4,
+      "result": "pass",
+      "suite": "tests/test_audio_distortion.py",
+      "log": ".local/distortion-audio-regression.log",
+      "aliasingComparison": "7kHz wavefold at 48kHz: folded 13kHz component below 20 percent of direct-rate reference"
+    },
+    "distortionBrowser": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/distortion-ui-final.log",
+      "nativeSampleRate": 44100,
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "realTransport": true
+    },
+    "distortionRealWav": {
+      "count": 1,
+      "subcases": 10,
+      "result": "pass",
+      "log": ".local/distortion-audio-regression.log",
+      "sampleRate": 44100,
+      "targets": [
+        "track",
+        "bus"
+      ],
+      "allFivePresets": true
+    },
+    "distortionAudioRegression": {
+      "count": 38,
+      "result": "pass",
+      "log": ".local/distortion-audio-regression.log",
+      "includesAudioPresetTests": 5,
+      "includesDistortionDspTests": 4,
+      "includesModulationWavTests": 1,
+      "includesDistortionWavTests": 1
+    },
+    "textContourBrowser": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/material-ui-final.log",
+      "fonts": [
+        "Arial",
+        "Poppins",
+        "Caveat",
+        "Playfair Display",
+        "Syne"
+      ],
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "allMacrosChangePixels": true,
+      "karaokeColoursPreserved": true,
+      "richRunsPreserved": true,
+      "grainStableAcrossGlow": true,
+      "note": "Combined log contains 16 scenarios: 6 material, 6 contour, 4 original text."
+    },
+    "textContourRealMp4": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/contours-export-final.log",
+      "allFivePresets": true,
+      "note": "Combined log contains two new contour tests and one existing mask/karaoke regression."
+    },
+    "textMaskBlendRealMp4Regression": {
+      "count": 1,
+      "result": "pass",
+      "log": ".local/contours-export-final.log",
+      "test": "test_text_mask_and_glyph_presets_preserve_karaoke_in_real_mp4"
+    },
+    "textVideoAudioProjectContractRegression": {
+      "count": 16,
+      "result": "pass",
+      "log": ".local/material-contract-final.log"
+    },
+    "textMaterialBrowser": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/material-ui-final.log",
+      "fonts": [
+        "Arial",
+        "Poppins",
+        "Caveat",
+        "Playfair Display",
+        "Syne"
+      ],
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "allMacrosChangePixels": true,
+      "actualBackdropPixels": true,
+      "homographyCoordinates": true,
+      "transparentBackdrop": true
+    },
+    "textMaterialRealMp4": {
+      "count": 3,
+      "result": "pass",
+      "log": ".local/material-export-final.log",
+      "allFivePresets": true,
+      "karaokeOverlayCurves": true,
+      "animatedMaskedPerspectiveRichTitle": true,
+      "note": "Combined log also contains two old text MP4 regressions."
+    },
+    "textMaterialMp4Regression": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/material-export-final.log",
+      "tests": [
+        "test_text_contour_presets_all_five_text_and_rich_title_layers_match_real_mp4",
+        "test_text_mask_and_glyph_presets_preserve_karaoke_in_real_mp4"
+      ]
+    },
+    "reactiveStereoAnalysis": {
+      "count": 3,
+      "result": "pass",
+      "log": ".local/geometry-python-final.log",
+      "blockSizes": [
+        1,
+        127,
+        735,
+        8192
+      ],
+      "fullBandAntiphaseMonoAndSingleChannel": true,
+      "displayLowpass": true
+    },
+    "reactiveGeometryAudioProjectRegression": {
+      "count": 25,
+      "result": "pass",
+      "log": ".local/geometry-python-final.log"
+    },
+    "reactiveGeometryBrowser": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/geometry-ui-final.log",
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "allMacrosChangePixels": true,
+      "seekRepeat": true,
+      "historyExpires": true,
+      "actualAntiphaseAudio": true,
+      "analysisReusedAcrossAllTwentyPresets": true,
+      "legacyPreparationHint": true
+    },
+    "reactiveGeometryRealMp4": {
+      "count": 2,
+      "subcases": 10,
+      "result": "pass",
+      "log": ".local/geometry-export-final.log",
+      "allTenNewPresets": true,
+      "automatedGeometryAndAmount": true,
+      "comparedFrames": 30
+    },
+    "reactiveGeometryMp4Regression": {
+      "count": 2,
+      "subcases": 3,
+      "result": "pass",
+      "log": ".local/geometry-export-final.log",
+      "tests": [
+        "test_reactive_bus_pre_post_curve_and_layers_match_real_mp4",
+        "test_glass_karaoke_overlay_and_automated_refraction_match_real_mp4"
+      ]
+    },
+    "videoGeometryBrowser": {
+      "count": 5,
+      "result": "pass",
+      "log": ".local/video-geometry-ui-final.log",
+      "allTenPresets": true,
+      "allMainMacrosChangePixels": true,
+      "targets": [
+        "scene",
+        "clip",
+        "image"
+      ],
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "contextLossAndUploadFailure": true,
+      "note": "Combined log also contains four optical regression scenarios."
+    },
+    "videoGeometryRealMp4": {
+      "count": 3,
+      "subcases": 11,
+      "result": "pass",
+      "log": ".local/video-geometry-export-final.log",
+      "allTenGlobalCurves": true,
+      "allTenTransparentImageLayers": true,
+      "resolutions": "720h for shattered tiles, triangular mirror and transparent image stack; 144h for other globals",
+      "note": "Combined log includes one optical regression test containing all ten optical clips. Existing RGB mean 8 / luma mean 4 tolerances unchanged."
+    },
+    "videoGeometryRawFrames": {
+      "count": 1,
+      "subcases": 2,
+      "result": "pass",
+      "log": ".local/video-geometry-raw-final.log",
+      "presets": [
+        "VFX-23",
+        "VFX-25"
+      ],
+      "resolutionHeight": 144,
+      "rgbMeanTolerance": 1.5,
+      "lumaMeanTolerance": 1,
+      "note": "Actual output frames before encoding, compared to studio at three times. MP4 is still generated and decoded; this separate assertion measures rendering without chroma subsampling loss."
+    },
+    "audioCharacterContractAndRegression": {
+      "count": 20,
+      "result": "pass",
+      "log": ".local/character-audio-final.log",
+      "note": "Four new character tests, plus acoustic/modulation, distortion, routing and project contract regression; combined log includes one additional WAV test."
+    },
+    "audioCharacterRealWav": {
+      "count": 1,
+      "subcases": 20,
+      "result": "pass",
+      "log": ".local/character-audio-final.log",
+      "targets": [
+        "track",
+        "bus"
+      ],
+      "allTenPresets": true,
+      "amountCurves": true,
+      "sampleRate": 44100
+    },
+    "audioCharacterBrowser": {
+      "count": 6,
+      "result": "pass",
+      "log": ".local/character-ui-final.log",
+      "allTenWorklets": true,
+      "sampleRates": [
+        44100,
+        48000
+      ],
+      "nonzeroSeek": true,
+      "bpm": 137,
+      "refills": true,
+      "automationCurves": true,
+      "patternEditing": true,
+      "historyCopiesDraftsLocks": true,
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "nativeAbsoluteTolerance": 5e-05,
+      "nativeRelativeTolerance": 0.0005,
+      "note": "Combined log includes 14 previous acoustic/modulation/distortion scenarios, including all 30 native processors at 8 kHz."
+    },
+    "audioCharacterBrowserRegression": {
+      "count": 14,
+      "result": "pass",
+      "log": ".local/character-ui-final.log"
+    },
+    "textKineticBrowser": {
+      "count": 5,
+      "result": "pass",
+      "log": ".local/text-kinetic-ui-final.log",
+      "allTenDistinct": true,
+      "allPrimaryMacrosChangePixels": true,
+      "seekRepeat": true,
+      "unicodeGraphemes": true,
+      "settledIdentity": true,
+      "premultipliedAmount": true,
+      "rgbOriginalAlpha": true,
+      "karaokeSourceMask": true,
+      "singleRichFragmentCursor": true,
+      "fonts": [
+        "Arial",
+        "Poppins",
+        "Caveat",
+        "Playfair Display",
+        "Syne"
+      ],
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ]
+    },
+    "textKineticBrowserRegression": {
+      "count": 16,
+      "result": "pass",
+      "log": ".local/text-kinetic-ui-final.log",
+      "families": [
+        "Original text",
+        "Contours",
+        "Materials"
+      ]
+    },
+    "textKineticRealMp4": {
+      "count": 2,
+      "subcases": 10,
+      "result": "pass",
+      "log": ".local/text-kinetic-export-final.log",
+      "allTenPresets": true,
+      "targets": [
+        "Plain text",
+        "Rich title with mask",
+        "Karaoke"
+      ],
+      "amountAndParameterCurves": true,
+      "note": "Four frames per output; existing MP4 RGB 8 / luma 4 tolerances unchanged. Combined log includes two old karaoke regressions."
+    },
+    "textKineticMp4Regression": {
+      "count": 2,
+      "result": "pass",
+      "log": ".local/text-kinetic-export-final.log",
+      "tests": [
+        "test_glass_karaoke_overlay_and_automated_refraction_match_real_mp4",
+        "test_text_contours_karaoke_curves_chase_and_erase_match_real_mp4"
+      ]
+    },
+    "reactiveFieldContractsAndRegression": {
+      "count": 14,
+      "result": "pass",
+      "log": ".local/reactive-fields-contract-final.log",
+      "newFieldContractTests": 2,
+      "families": [
+        "Field contracts",
+        "Real stereo/spectral analysis",
+        "Project contracts"
+      ]
+    },
+    "reactiveFieldBrowser": {
+      "count": 5,
+      "result": "pass",
+      "log": ".local/reactive-fields-ui-final.log",
+      "allTenDistinct": true,
+      "allPrimaryControlsChangePixels": true,
+      "seekRepeat": true,
+      "silenceAndBypassExact": true,
+      "historyExpiry": true,
+      "legacyV1Spectrum": true,
+      "realSelectedBusPost": true,
+      "analysisReuseAndInvalidation": true,
+      "widths": [
+        320,
+        375,
+        768,
+        1024,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "portraitRasterBudget": true
+    },
+    "reactiveFieldBrowserRegression": {
+      "count": 10,
+      "result": "pass",
+      "log": ".local/reactive-fields-ui-final.log",
+      "allThirtyPresets": true,
+      "note": "Combined log has 15 scenarios; previous spectrum/stereo and original reactive scenarios are included."
+    },
+    "reactiveFieldRealMp4": {
+      "count": 2,
+      "subcases": 10,
+      "result": "pass",
+      "log": ".local/reactive-fields-export-final.log",
+      "allTenPresets": true,
+      "source": "Selected bus post-FX",
+      "sourceAudio": "Pulsed 110 / 900 / 4800 Hz stereo",
+      "amountAndParameterCurves": true,
+      "upperTextLayer": true,
+      "framesPerOutput": 3,
+      "note": "Existing RGB mean 8 / luma mean 4 tolerances unchanged; combined log also has one previous bus pre/post regression with two subcases."
+    },
+    "reactiveFieldMp4Regression": {
+      "count": 1,
+      "subcases": 2,
+      "result": "pass",
+      "log": ".local/reactive-fields-export-final.log",
+      "test": "test_reactive_bus_pre_post_curve_and_layers_match_real_mp4"
+    },
+    "temporalVideo": {
+      "newBrowser": 7,
+      "priorVideoBrowser": 9,
+      "realMp4": 3,
+      "mp4Frames": 9,
+      "result": "pass",
+      "logs": [
+        ".local/temporal-ui-new-final.log",
+        ".local/temporal-ui-final.log",
+        ".local/temporal-final-parity.log"
+      ],
+      "note": "New browser six + color-comparison one; prior browser geometry five + optics four. Combined parity log contains one UI and three MP4 cases."
+    },
+    "timeSlice": {
+      "newBrowser": 5,
+      "priorVideoBrowser": 9,
+      "realMp4Tests": 3,
+      "realMp4Files": 4,
+      "mp4Frames": 12,
+      "result": "pass",
+      "logs": [
+        ".local/time-slice-ui-final.log",
+        ".local/time-slice-temporal-regression.log",
+        ".local/time-slice-export-final.log"
+      ],
+      "note": "Browser six = four new + two prior authoring; browser eight = maximum/color new + seven Ghost Trail regressions."
+    },
+    "shutterStutter": {
+      "newBrowser": 6,
+      "priorVideoBrowser": 14,
+      "realMp4Tests": 3,
+      "realMp4Files": 3,
+      "mp4Frames": 13,
+      "result": "pass",
+      "logs": [
+        ".local/shutter-ui-first.log",
+        ".local/shutter-ui-final.log",
+        ".local/shutter-export-final.log"
+      ],
+      "note": "First browser five new; final browser fifteen = maximum/color new + Ghost seven + Time Slice five + two prior authoring cases."
+    },
+    "motionSmear": {
+      "newBrowser": 6,
+      "priorVideoBrowser": 20,
+      "realMp4Tests": 3,
+      "realMp4Files": 3,
+      "mp4Frames": 9,
+      "result": "pass",
+      "logs": [
+        ".local/motion-smear-ui-first.log",
+        ".local/motion-smear-ui-final.log",
+        ".local/motion-smear-export-final.log"
+      ],
+      "note": "First browser four new; final browser twenty-two = two new + six Shutter + five Time Slice + seven Ghost + two prior authoring cases."
+    },
+    "reverseEcho": {
+      "newBrowser": 6,
+      "priorVideoBrowser": 26,
+      "realMp4Tests": 3,
+      "realMp4Files": 3,
+      "mp4Frames": 11,
+      "result": "pass",
+      "logs": [
+        ".local/reverse-echo-ui-new.log",
+        ".local/reverse-echo-ui-regression.log",
+        ".local/reverse-echo-thumbnail-final.log",
+        ".local/reverse-echo-export-final.log"
+      ],
+      "note": "Six unique new browser scenarios + 26 prior. Regression log has 27 = repeated new boundary + six Motion Smear + six Shutter + five Time Slice + seven Ghost + two prior authoring. Thumbnail final log repeats one new scenario after strengthening its pixel assertion."
+    },
+    "final75": {
+      "result": "pass",
+      "pythonTests": 44,
+      "additionalAudioRegressionTests": 20,
+      "native48kColdClockRetest": 1,
+      "uniqueBrowserScenarios": 89,
+      "browserInitialPasses": 87,
+      "browserInitialObsoleteSearchAssertion": 1,
+      "browserFinalRetests": 6,
+      "realMp4Tests": 5,
+      "realMp4Files": 29,
+      "comparedMp4Frames": 107,
+      "preparedWavTargetCases": 40,
+      "logs": [
+        ".local/final-presets-python-verified.log",
+        ".local/final-presets-browser-verified.log",
+        ".local/final-presets-ui-final-retest.log",
+        ".local/final-presets-export-verified.log",
+        ".local/final-audio-regression.log",
+        ".local/final-character-clock.log",
+        ".local/final-prepared-audio-audition-retest.log"
+      ],
+      "note": "The 88-scenario log retains one obsolete spektrum count assertion (5→6 after ARX-42). The corrected scenario passes in the final six-test retest; the new karaoke/two-line bypass test increases unique coverage to 89. Other final visual scenarios also rerun after the final text changes."
+    }
+  },
+  "notVerified": [
+    "Physical phone",
+    "Safari/iOS",
+    "Firefox",
+    "Public tunnel",
+    "Spoken screen-reader output"
+  ],
+  "nextPresets": [],
+  "categoryCounts": {
+    "video": 50,
+    "audio": 50,
+    "text": 50,
+    "audioReactive": 50
+  },
+  "reactiveAnalysis": {
+    "hz": 60,
+    "bands": 64,
+    "stereo": "power spectra + display waveforms + full-band L²/R²/LR moments",
+    "sourceOptions": [
+      "master",
+      "track",
+      "bus"
+    ],
+    "points": [
+      "pre",
+      "post"
+    ],
+    "channelTap": "FX input/output before fader and timing fades",
+    "masterPost": "delivery PCM including enabled normalization",
+    "cache": "ephemeral; invalidated by audio/source changes",
+    "export": "automatically prepared using the same DSP and spectrum code",
+    "activeParticleLimit": 512,
+    "transportVersion": 2,
+    "waveRate": 6000
+  },
+  "opticalRendering": {
+    "presets": [
+      "VFX-11",
+      "VFX-12",
+      "VFX-13",
+      "VFX-14",
+      "VFX-15",
+      "VFX-16",
+      "VFX-17",
+      "VFX-18",
+      "VFX-19",
+      "VFX-20"
+    ],
+    "targets": [
+      "clip",
+      "scene",
+      "image/video layer"
+    ],
+    "color": "premultiplied RGBA filtering",
+    "streakPasses": 3,
+    "streakColumns": 64,
+    "pixelReferenceHeight": 720,
+    "visualContactSheet": ".local/optics-contact-sheet.png"
+  },
+  "modulationRendering": {
+    "presets": [
+      "AFX-16",
+      "AFX-17",
+      "AFX-18",
+      "AFX-19",
+      "AFX-20"
+    ],
+    "live": "AudioWorklet",
+    "export": "audio_modulation.py",
+    "controlFrames": 128,
+    "controlSmoothingSeconds": 0.01,
+    "vibratoWetLatencySeconds": 0.04,
+    "delayBufferSeconds": 0.25,
+    "structuralParameters": [
+      "voices",
+      "stages"
+    ],
+    "clock": "Integer project/context frame offset; phase advances without resets during automation refills",
+    "seek": "Cold delay/filter history; whole-file parity measured from project start",
+    "failedPreparation": "Injected platform rejection reported; real module retry verified"
+  },
+  "distortionRendering": {
+    "presets": [
+      "AFX-21",
+      "AFX-22",
+      "AFX-23",
+      "AFX-24",
+      "AFX-25"
+    ],
+    "live": "AudioWorklet",
+    "export": "audio_distortion.py",
+    "oversample": 4,
+    "firTaps": 65,
+    "firCutoffFraction": 0.45,
+    "localDryWetAlignmentFrames": 16,
+    "globalDelayCompensation": false,
+    "controlFrames": 128,
+    "controlSmoothingSeconds": 0.01,
+    "dcCutoffHz": 10,
+    "gainCurveTolerance": 1e-05,
+    "structuralParameters": [
+      "folds"
+    ],
+    "sharedNode": "audio-preset-worklet-node.js",
+    "seek": "Cold FIR/filter history; whole-file parity measured from project start"
+  },
+  "textContourRendering": {
+    "presets": [
+      "TFX-11",
+      "TFX-12",
+      "TFX-13",
+      "TFX-14",
+      "TFX-15"
+    ],
+    "geometry": "Marching squares over actual Canvas glyph alpha with subpixel edge interpolation",
+    "alphaThreshold": 128,
+    "maxMaskPixels": 262144,
+    "maxMaskEdge": 2048,
+    "maxCacheEntries": 32,
+    "maxCachePoints": 262144,
+    "fontLoadingInvalidatesCache": true,
+    "fill": "Native callback preserves run/karaoke colours; contour light is behind the fill",
+    "grain": "Seeded glyph-local coordinates independent of glow padding",
+    "mix": "One premultiplied additive crossfade; also fixes old text masks at partial amount",
+    "structuralParameters": [
+      "order",
+      "reverse",
+      "seed"
+    ],
+    "visualContactSheet": ".local/text-contour-contact-sheet.png",
+    "limitations": [
+      "Raster contour resolution; large masks are downscaled",
+      "Colour emoji use alpha silhouette contours",
+      "Title frame may clip high glow; existing title padding controls the inset"
+    ]
+  },
+  "textMaterialRendering": {
+    "presets": [
+      "TFX-16",
+      "TFX-17",
+      "TFX-18",
+      "TFX-19",
+      "TFX-20"
+    ],
+    "renderer": "Shared Canvas2D material kernel in preview/export; glyph distance normals and spatial seeded grain",
+    "maxMaskPixels": 131072,
+    "maxMaskEdge": 1024,
+    "maxCacheEntries": 16,
+    "maxCachePixels": 1048576,
+    "fontLoadingInvalidatesCache": true,
+    "backdrop": "Per-layer snapshot; explicit affine/projective mapping; title decoration and lyric boxes/overlay; one snapshot for karaoke base/highlight",
+    "mix": "Existing premultiplied crossfade; separate decoration painting avoids antialias subtraction fringes",
+    "structuralParameters": [
+      "seed"
+    ],
+    "negativeAndZeroAnimationSpeed": true,
+    "visualContactSheet": ".local/text-material-contact-sheet.png",
+    "profile": {
+      "center": 0,
+      "fonts": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "entries": 16,
+      "pixels": 213971,
+      "hugePixels": 4096,
+      "hugeWidth": 1024,
+      "after": 0,
+      "bypass": true,
+      "median": 8.300000004470348
+    },
+    "profileScope": "72px Arial İstanbul, Hologram Foil, 640x360 Canvas, includes PNG encoding; desktop Chromium only",
+    "limitations": [
+      "Raster 2D material approximation; very large glyph masks are downsampled",
+      "Materials replace native fill colours; karaoke progress clip/opacity/glow remain",
+      "Existing title frame may clip high glow; use title padding"
+    ]
+  },
+  "reactiveGeometryRendering": {
+    "presets": [
+      "ARX-06",
+      "ARX-07",
+      "ARX-08",
+      "ARX-09",
+      "ARX-10",
+      "ARX-11",
+      "ARX-12",
+      "ARX-13",
+      "ARX-14",
+      "ARX-15"
+    ],
+    "analysisVersion": 2,
+    "waveRate": 6000,
+    "waveLowpass": 2400,
+    "waveFirTaps": 129,
+    "waveEncoding": "8-bit mu-law 255",
+    "waveFilterDelaySeconds": 0.0014512471655328798,
+    "stereoMoments": "Full-band mean L², R² and LR per 60 Hz interval; prefix averages and causal smoothing",
+    "maxHistoryRows": 144,
+    "maxWavePoints": 512,
+    "maxTraceGroups": 12,
+    "maxTunnelRings": 24,
+    "maxBandCaches": 16,
+    "geometryClock": "Absolute project time; only past prepared data; no render accumulation",
+    "visualContactSheet": ".local/reactive-geometry-contact-sheet.png",
+    "profile": [
+      {
+        "id": "ARX-08",
+        "median": 2.5
+      },
+      {
+        "id": "ARX-12",
+        "median": 0.6000000014901161
+      },
+      {
+        "id": "ARX-15",
+        "median": 4.100000001490116
+      }
+    ],
+    "profileScope": "1280x720 desktop Chromium, maximum waterfall history / polar point count / tunnel ring count; not phone FPS",
+    "limitations": [
+      "Display waves are filtered/companded, not measurement PCM",
+      "Stereo analysis windows quantized to 60 Hz intervals",
+      "Existing spectral floor/ceiling -100/-30 dB; very quiet bands can be zero",
+      "Physical phone, Safari/iOS, Firefox and tunnel not verified"
+    ]
+  },
+  "videoGeometryRendering": {
+    "presets": [
+      "VFX-21",
+      "VFX-22",
+      "VFX-23",
+      "VFX-24",
+      "VFX-25",
+      "VFX-26",
+      "VFX-27",
+      "VFX-28",
+      "VFX-29",
+      "VFX-30"
+    ],
+    "renderer": "Nine WebGL effects with equivalent premultiplied CPU kernels; genuine stable pixel sort uses shared CPU pass",
+    "maxCopies": 16,
+    "paletteSizes": [
+      2,
+      16
+    ],
+    "ditherMinimumPhysicalCell": 4,
+    "ditherCellMultiple": 2,
+    "seedRange": [
+      0,
+      288
+    ],
+    "clock": "Absolute project time; deterministic seeded ticks/events; no frame history",
+    "triangleFilter": "Progressive half-size source prefilter and continuous three-colour triangular lattice",
+    "tileEdges": "Soft coverage and low-chroma glass rim",
+    "sortWorkspace": "Axis-length indices/bins and 256 counting bins; stable insertion for runs <=32; counting sort otherwise",
+    "structuralParameters": [
+      "facets",
+      "axis",
+      "seed",
+      "copies",
+      "refresh",
+      "direction",
+      "palette",
+      "interval",
+      "fill"
+    ],
+    "visualContactSheet": ".local/video-geometry-contact-sheet.png",
+    "gpuCpuParity": [
+      {
+        "id": "VFX-21",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 1,
+        "mean": 0.00164794921875,
+        "p99": 0
+      },
+      {
+        "id": "VFX-22",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 1,
+        "mean": 0.00042724609375,
+        "p99": 0
+      },
+      {
+        "id": "VFX-23",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 2,
+        "mean": 0.015889485677083332,
+        "p99": 1
+      },
+      {
+        "id": "VFX-24",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 1,
+        "mean": 2.0345052083333332e-05,
+        "p99": 0
+      },
+      {
+        "id": "VFX-25",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 2,
+        "mean": 0.038289388020833336,
+        "p99": 1
+      },
+      {
+        "id": "VFX-26",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 1,
+        "mean": 0.011576334635416666,
+        "p99": 1
+      },
+      {
+        "id": "VFX-27",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 0,
+        "mean": 0,
+        "p99": 0
+      },
+      {
+        "id": "VFX-28",
+        "gpu": true,
+        "cpuSort": true,
+        "max": 0,
+        "mean": 0,
+        "p99": 0
+      },
+      {
+        "id": "VFX-29",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 0,
+        "mean": 0,
+        "p99": 0
+      },
+      {
+        "id": "VFX-30",
+        "gpu": true,
+        "cpuSort": false,
+        "max": 0,
+        "mean": 0,
+        "p99": 0
+      }
+    ],
+    "profile": {
+      "max": 1.5,
+      "bypass": true,
+      "median": 51.30000000447035
+    },
+    "profileScope": "1280x720 desktop Chromium, Pixel Sort threshold 0 / maximum run 512, five frames; not phone FPS",
+    "limitations": [
+      "Pixel Sort is CPU-bound; measured median is about 51 ms on this desktop, so heavy use may reduce preview FPS",
+      "Low-resolution 4:2:0 MP4 loses fine coloured tile/triangle detail; raw rendering verified separately and delivery parity verified at 720h",
+      "Codec Blocks simulates compression artifacts; it does not corrupt a codec bitstream",
+      "Physical phone, Safari/iOS, Firefox and tunnel not verified"
+    ]
+  },
+  "audioCharacterRendering": {
+    "presets": [
+      "AFX-26",
+      "AFX-27",
+      "AFX-28",
+      "AFX-29",
+      "AFX-30",
+      "AFX-36",
+      "AFX-37",
+      "AFX-38",
+      "AFX-39",
+      "AFX-40"
+    ],
+    "renderer": "Wet-only stereo AudioWorklet and equivalent streaming Python DSP",
+    "continuousControlSmoothingSeconds": 0.01,
+    "gateSmoothing": "User gate softness / 1ms tremolo edge smoothing; cold gate initializes to actual step state",
+    "clock": "Absolute project frames, synced divisions use project BPM with time-zero origin; BPM/division changes rebuild branch",
+    "steps": 16,
+    "patterns": "Native pressed buttons for gate/repeat and labelled numeric percentages for filter; validated structural values, one undo per edit",
+    "noise": "Absolute-frame 32-bit hash with user seed and stereo salts; no random state",
+    "cassetteDelaySeconds": 0.03,
+    "cassetteDryAligned": true,
+    "stutter": "Two stereo cell buffers: record live cells, repeat last complete live cell, use live input until one is ready; blend to live input at repeat boundaries",
+    "maxCellSeconds": 12,
+    "maxStutterBufferBytes": 9216000,
+    "maxCellProfileSampleRate": 48000,
+    "scheduleFix": "Preserve an endpoint for an active native gain ramp before replacement during refill; anchor before frame boundary by 1e-10s. Eliminates measured one-sample 44.1kHz gain/mix spike without tolerance changes.",
+    "profile": {
+      "rows": [
+        {
+          "id": "AFX-26",
+          "median": 0
+        },
+        {
+          "id": "AFX-27",
+          "median": 0.09999999403953552
+        },
+        {
+          "id": "AFX-28",
+          "median": 0.09999999403953552
+        },
+        {
+          "id": "AFX-29",
+          "median": 0.09999999403953552
+        },
+        {
+          "id": "AFX-30",
+          "median": 0
+        },
+        {
+          "id": "AFX-36",
+          "median": 0
+        },
+        {
+          "id": "AFX-37",
+          "median": 0.10000000894069672
+        },
+        {
+          "id": "AFX-38",
+          "median": 0
+        },
+        {
+          "id": "AFX-39",
+          "median": 0.09999999403953552
+        },
+        {
+          "id": "AFX-40",
+          "median": 0
+        }
+      ],
+      "maxCellFrames": 576000,
+      "totalBufferBytes": 9216000
+    },
+    "profileScope": "48kHz /128-frame synchronous desktop Chromium kernels, 80 blocks; median often near timer resolution, not real-device latency guarantee",
+    "visualSequence": ".local/character-sequence.png",
+    "limitations": [
+      "Rhythm origin is project time zero; rhythm.offset does not shift this family, tremolo/stutter have their own phase controls",
+      "Stutter needs a complete live cell after a cold seek; all-repeat patterns stay live until a cell is captured",
+      "Cassette active zero mix still has 30ms aligned dry delay; disabled bypass is exact",
+      "Vinyl intentionally produces surface noise during silence",
+      "Bitcrush/sample-rate reduction deliberately alias; not high-quality sample-rate conversion",
+      "Physical phone, Safari/iOS, Firefox, tunnel and hardware listening are not verified"
+    ]
+  },
+  "textKineticRendering": {
+    "presets": [
+      "TFX-21",
+      "TFX-22",
+      "TFX-23",
+      "TFX-24",
+      "TFX-25",
+      "TFX-26",
+      "TFX-27",
+      "TFX-28",
+      "TFX-29",
+      "TFX-30"
+    ],
+    "renderer": "Shared Canvas2D painter in preview and export; pure cue clocks and glyph geometry",
+    "maxSurfacePixels": 262144,
+    "maxSurfaceEdge": 2048,
+    "roundingAllowancePixels": 4096,
+    "maxLayoutEntries": 16,
+    "maxLayoutGlyphs": 8192,
+    "meshStrips": 20,
+    "trianglesPerProjection": 40,
+    "meshSource": "Cropped actual ink, not movement padding",
+    "fontLoadingInvalidatesCache": true,
+    "seedRange": [
+      0,
+      288
+    ],
+    "mix": "Premultiplied native/effect crossfade once; caller opacity/transform applied once",
+    "karaoke": "Highlight clip is applied in source coordinates before kinetic deformation; original effects retain destination clip",
+    "terminal": "Grapheme completion times and punctuation/word pauses; compress to short cue; one cursor owner across rich fragments",
+    "spring": "Analytic underdamped/critical/overdamped unit-mass response, finite settling window",
+    "visualContactSheet": ".local/text-kinetic-contact-sheet.png",
+    "profile": {
+      "fonts": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "entries": 16,
+      "glyphs": 128,
+      "after": 0,
+      "rows": [
+        {
+          "id": "TFX-21",
+          "median": 2
+        },
+        {
+          "id": "TFX-22",
+          "median": 0.29999999701976776
+        },
+        {
+          "id": "TFX-23",
+          "median": 4.0999999940395355
+        },
+        {
+          "id": "TFX-24",
+          "median": 1.2999999970197678
+        },
+        {
+          "id": "TFX-25",
+          "median": 0.5999999940395355
+        },
+        {
+          "id": "TFX-26",
+          "median": 1.7000000029802322
+        },
+        {
+          "id": "TFX-27",
+          "median": 0.8999999910593033
+        },
+        {
+          "id": "TFX-28",
+          "median": 1.7999999970197678
+        },
+        {
+          "id": "TFX-29",
+          "median": 11.900000005960464
+        },
+        {
+          "id": "TFX-30",
+          "median": 5.5
+        }
+      ],
+      "pixels": 65536,
+      "edge": 2048
+    },
+    "profileScope": "56px Arial, İstanbul O, 640x360 desktop Chromium, six paints per effect; not phone FPS",
+    "limitations": [
+      "Very large text/movement margins are raster-downscaled to the surface budget",
+      "Perspective uses a fixed 20-strip triangle approximation, not a 3D text mesh",
+      "Per-grapheme motion can shape joined scripts/ligatures differently during animation; completed reveal/elastic/flip returns native text",
+      "Existing title canvas bounds can clip moving glyphs; title padding controls available space",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader output not verified"
+    ]
+  },
+  "reactiveFieldRendering": {
+    "presets": [
+      "ARX-21",
+      "ARX-22",
+      "ARX-23",
+      "ARX-24",
+      "ARX-25",
+      "ARX-26",
+      "ARX-27",
+      "ARX-28",
+      "ARX-29",
+      "ARX-30"
+    ],
+    "renderer": "Shared Canvas2D background-scene overlays in preview/export; pure past-only geometry",
+    "analysis": "Existing prepared v1/v2 spectra; all thirty presets reuse selected source analysis",
+    "smoothingTaps": 5,
+    "maxFlowHistory": 16,
+    "maxFlowSteps": 32,
+    "maxFlowLines": 96,
+    "maxTerrainGrid": 32,
+    "maxTerrainCells": 961,
+    "maxSphereCells": 2304,
+    "maxAuroraLayers": 10,
+    "maxHexRings": 12,
+    "maxHexCells": 469,
+    "maxTriangles": 24,
+    "maxMandalaArms": 24,
+    "maxCubeFaces": 1152,
+    "maxPolygonVertices": 16,
+    "maxEvents": 16,
+    "maxPoolPixels": 20736,
+    "maxPoolEdge": 192,
+    "pool": "Analytic ring-height normals with directional illumination; precompute event centres/amplitudes once per frame; skip Gaussian tails beyond four widths",
+    "sphere": "3D deformed front-face mesh with shared smooth radial lighting, filled once to avoid face seams",
+    "roundedPolygon": "Continuous corner inset from zero rounding; no zero-to-positive outline jump",
+    "eventClock": "Existing 60Hz novelty detector; capped sixteen newest relevant events, no RAF or frame accumulation",
+    "visualContactSheet": ".local/reactive-fields-contact-sheet.png",
+    "profile": {
+      "rows": [
+        {
+          "id": "ARX-21",
+          "median": 26.400000005960464
+        },
+        {
+          "id": "ARX-22",
+          "median": 4.299999997019768
+        },
+        {
+          "id": "ARX-23",
+          "median": 4.300000011920929
+        },
+        {
+          "id": "ARX-24",
+          "median": 13.800000011920929
+        },
+        {
+          "id": "ARX-25",
+          "median": 0.5999999940395355
+        },
+        {
+          "id": "ARX-26",
+          "median": 3.6000000089406967
+        },
+        {
+          "id": "ARX-27",
+          "median": 0.20000000298023224
+        },
+        {
+          "id": "ARX-28",
+          "median": 0.5999999940395355
+        },
+        {
+          "id": "ARX-29",
+          "median": 2.6000000089406967
+        },
+        {
+          "id": "ARX-30",
+          "median": 0.20000000298023224
+        }
+      ],
+      "poolPixels": 20736,
+      "poolEdge": 192,
+      "portraitPoolPixels": 9216,
+      "portraitPoolEdge": 192,
+      "maxEvents": 16
+    },
+    "profileScope": "1280x720 desktop Chromium, five paints at maximum density/history, including sixteen pool events; portrait budget separately checked at 320x1280",
+    "limitations": [
+      "Vocal Flow Field follows a selected channel or mid bands, not vocal separation",
+      "Pool is a bounded raster height-field overlay, not a fluid solver or source refraction",
+      "Sphere/terrain/cubes are Canvas projections, not editable 3D scene objects",
+      "Dense pool CPU rendering measured about 26ms median on this desktop; may reduce preview FPS with other effects",
+      "Only sixteen newest relevant beat events are retained; older tails may be dropped in very dense music",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen-reader output not verified"
+    ]
+  },
+  "temporalVideo": {
+    "presets": [
+      "VFX-31"
+    ],
+    "algorithm": "Normalized, decaying premultiplied RGBA from timestamp-addressed media/composed scene frames",
+    "targets": [
+      "scene",
+      "clip",
+      "video layer"
+    ],
+    "maximumPastFrames": 6,
+    "concurrentDecoderGroups": 4,
+    "interpolationMayUseSecondaryVideo": true,
+    "cacheFrames": 24,
+    "cacheBytes": 67108864,
+    "cacheBudgetExcludesWorkingSurfaces": true,
+    "previewExportShareSampler": true,
+    "playedFrameAccumulator": false,
+    "phaseReverseRampFreezeBlend": true,
+    "separateColorComparisonHistories": true,
+    "staleAsyncSeekAndBypassTested": true,
+    "failedBatchDrainsActiveLanes": true,
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 31,
+        "creativeAudioPresets": 30,
+        "creativeTextPresets": 30,
+        "creativeReactivePresets": 30
+      },
+      "scripts": [
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "temporal-media",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "scene-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "visual-layers",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "video",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "export-scene",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "profile": {
+      "history": 6,
+      "bytes": 663552,
+      "decoders": 4,
+      "temporalMs": 300.5,
+      "width": 405,
+      "height": 720,
+      "coldMs": 814.2999999970198,
+      "nearbyFrameMs": [
+        319.5,
+        315,
+        300.5
+      ],
+      "nearbyMedianMs": 315
+    },
+    "limitations": [
+      "Still image sources remain neutral",
+      "Global history excludes independent layers, captions and final reactive FX",
+      "Maximum-history portrait preparation about 315ms median on this desktop Chromium; parallel decoders did not improve total scene composition cost; real-time preview not guaranteed",
+      "Temporary composite surfaces are additional to the 64 MiB raw-frame cache",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader not verified"
+    ]
+  },
+  "timeSlice": {
+    "presets": [
+      "VFX-32"
+    ],
+    "targets": [
+      "scene",
+      "clip",
+      "video layer"
+    ],
+    "stripes": [
+      2,
+      7
+    ],
+    "delaySeconds": [
+      0,
+      1.5
+    ],
+    "directions": [
+      "right",
+      "left",
+      "down",
+      "up"
+    ],
+    "automatable": [
+      "amount",
+      "delay",
+      "softness"
+    ],
+    "structural": [
+      "count",
+      "direction"
+    ],
+    "premultipliedAlpha": true,
+    "partitionOfUnity": true,
+    "hardEdgesOwnIntegerPixels": true,
+    "earlyHistoryClampsToExposureStart": true,
+    "duplicateGlobalTimestampsShareComposedFrame": true,
+    "sourceHistoryIndependentOfPlayback": true,
+    "maximumCompositeError": 2.371993674889339,
+    "compositeCases": 48,
+    "distinctDirectionSoftnessImages": 8,
+    "profile": {
+      "history": 6,
+      "bytes": 258048,
+      "decoders": 4,
+      "temporalMs": 320,
+      "width": 405,
+      "height": 720,
+      "earlyColorComparison": {
+        "before": 6,
+        "after": 6,
+        "beforeSources": 1,
+        "afterSources": 1,
+        "different": true
+      }
+    },
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 32,
+        "creativeAudioPresets": 30,
+        "creativeTextPresets": 30,
+        "creativeReactivePresets": 30
+      },
+      "scripts": [
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-time-slice",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "temporal-media",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "limitations": [
+      "Still image layers remain neutral",
+      "Global history excludes independent layers, captions and final reactive FX",
+      "Seven-band portrait preparation about 320ms in one desktop Chromium sample; real-time preview not guaranteed",
+      "Working composite surfaces add memory beyond the 64 MiB raw cache",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader not verified"
+    ]
+  },
+  "shutterStutter": {
+    "presets": [
+      "VFX-33"
+    ],
+    "targets": [
+      "scene",
+      "clip",
+      "video layer"
+    ],
+    "holdSeconds": [
+      0,
+      3
+    ],
+    "periodSeconds": [
+      0.05,
+      3
+    ],
+    "phasePercent": [
+      0,
+      100
+    ],
+    "automatable": [
+      "hold",
+      "amount"
+    ],
+    "structural": [
+      "interval",
+      "phase"
+    ],
+    "clockOrigin": "project zero",
+    "phaseZeroAndHundredEquivalent": true,
+    "holdClampsToPeriod": true,
+    "gateStartInclusiveEndExclusive": true,
+    "sourceClampsToExposureStart": true,
+    "fullMixReturnsExactHeldSource": true,
+    "partialMixPremultiplied": true,
+    "releaseReturnsOriginalSource": true,
+    "transportAndTimelineUnchanged": true,
+    "seekOrderIndependent": true,
+    "realDurationVerified": 1.5,
+    "profile": {
+      "history": 1,
+      "anchor": 0.75,
+      "bytes": 147456,
+      "decoders": 2,
+      "width": 405,
+      "height": 720,
+      "nearbyFrameMs": [
+        42.20000000298023,
+        61.400000005960464,
+        117.30000001192093
+      ],
+      "nearbyMedianMs": 61.400000005960464,
+      "colorComparison": {
+        "before": 1,
+        "after": 1,
+        "different": true
+      }
+    },
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 33,
+        "creativeAudioPresets": 30,
+        "creativeTextPresets": 30,
+        "creativeReactivePresets": 30
+      },
+      "scripts": [
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-shutter",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "limitations": [
+      "Period and phase are structural; hold duration and amount support automation",
+      "Static image layers remain neutral",
+      "Global hold excludes independent layers, captions and final reactive FX",
+      "One-history portrait preparation about 61ms median on this desktop Chromium; real-time preview not guaranteed",
+      "Working surfaces add memory beyond the 64 MiB raw cache",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader not verified"
+    ]
+  },
+  "motionSmear": {
+    "presets": [
+      "VFX-34"
+    ],
+    "targets": [
+      "scene",
+      "clip",
+      "video layer"
+    ],
+    "samples": [
+      1,
+      6
+    ],
+    "trailSeconds": [
+      0,
+      1.5
+    ],
+    "thresholdPercent": [
+      0,
+      100
+    ],
+    "automatable": [
+      "trail",
+      "threshold",
+      "amount"
+    ],
+    "structural": [
+      "count"
+    ],
+    "adjacentFrameComparison": true,
+    "difference": "maximum premultiplied RGBA channel change",
+    "opticalFlow": false,
+    "maskFeather": 0.08,
+    "historyWeightsSumToOne": true,
+    "historyWeightsDecreaseWithAge": true,
+    "maxHistory": 6,
+    "maxTextures": 7,
+    "exposureStartClamped": true,
+    "seekOrderIndependent": true,
+    "zeroAndBypassReturnOriginal": true,
+    "fullThresholdSkipsSampling": true,
+    "transparentHiddenRgbIgnored": true,
+    "actualGpuCpuCases": 18,
+    "actualContextLossAndRestore": true,
+    "textureUploadFailureFallback": true,
+    "profile": {
+      "history": 6,
+      "bytes": 258048,
+      "decoders": 4,
+      "gpu": true,
+      "temporalMs": 256.5,
+      "width": 405,
+      "height": 720,
+      "colorComparison": {
+        "before": 6,
+        "after": 6,
+        "different": true
+      },
+      "kernel": {
+        "gpu": true,
+        "cpu": true,
+        "textures": 7,
+        "gpuMs": [
+          77.29999999701977,
+          84.40000000596046,
+          108.8999999910593
+        ],
+        "cpuMs": [
+          199.80000001192093,
+          210.8999999910593,
+          222.3999999910593
+        ],
+        "gpuMedian": 84.40000000596046,
+        "cpuMedian": 210.8999999910593
+      }
+    },
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 34,
+        "creativeAudioPresets": 30,
+        "creativeTextPresets": 30,
+        "creativeReactivePresets": 30
+      },
+      "scripts": [
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-motion-smear",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-motion-smear-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "limitations": [
+      "Static image layers remain neutral",
+      "Global history excludes independent layers, captions and final reactive FX",
+      "Source FPS limits temporal precision",
+      "Six-history portrait preparation about 257ms; 1280x720 standalone compositor median GPU path 84ms / CPU 211ms in desktop headless Chromium; real-time preview not guaranteed",
+      "Working surfaces and GPU textures add memory beyond the 64 MiB raw cache",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader not verified"
+    ]
+  },
+  "reverseEcho": {
+    "presets": [
+      "VFX-35"
+    ],
+    "targets": [
+      "scene",
+      "clip",
+      "video layer"
+    ],
+    "samples": [
+      1,
+      6
+    ],
+    "intervalSeconds": [
+      0.02,
+      0.5
+    ],
+    "maxLookaheadSeconds": 3,
+    "falloffPercent": [
+      0,
+      100
+    ],
+    "automatable": [
+      "interval",
+      "falloff",
+      "amount"
+    ],
+    "structural": [
+      "count"
+    ],
+    "sampleDirection": "future project time",
+    "weight": "(1-falloff/100)^ordinal",
+    "composition": "normalized native Canvas premultiplied RGBA",
+    "endExclusive": true,
+    "outsideExposure": "omitted",
+    "clipBoundsFollowCurrentMontageLoop": true,
+    "heldLastClipEndDoesNotMove": true,
+    "firstFrameSupported": true,
+    "seekOrderIndependent": true,
+    "transportAndDurationUnchanged": true,
+    "zeroAndBypassReturnOriginal": true,
+    "fullFalloffSkipsSampling": true,
+    "profile": {
+      "future": [
+        0.5,
+        0.6000000000000001,
+        0.7000000000000001,
+        0.8,
+        0.9,
+        1
+      ],
+      "history": 6,
+      "bytes": 774144,
+      "decoders": 4,
+      "width": 405,
+      "height": 720,
+      "nearbyFrameMs": [
+        313.8999999910593,
+        300.90000000596046,
+        274.5
+      ],
+      "nearbyMedianMs": 300.90000000596046,
+      "colorComparison": {
+        "before": 6,
+        "after": 6,
+        "different": true
+      }
+    },
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 35,
+        "creativeAudioPresets": 30,
+        "creativeTextPresets": 30,
+        "creativeReactivePresets": 30
+      },
+      "scripts": [
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "temporal-media",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "limitations": [
+      "Static image layers remain neutral",
+      "Global future excludes independent layers, captions and final reactive FX",
+      "Source FPS limits temporal precision",
+      "Six-echo portrait preparation median about 301ms in desktop headless Chromium; real-time preview not guaranteed",
+      "Nested clip/global effects and multiple layers increase preparation cost",
+      "Working compositions add memory beyond the 64 MiB raw cache",
+      "Physical phone, Safari/iOS, Firefox, tunnel and spoken screen reader not verified"
+    ]
+  },
+  "final75": {
+    "presets": [
+      "VFX-36",
+      "VFX-37",
+      "VFX-38",
+      "VFX-39",
+      "VFX-40",
+      "VFX-41",
+      "VFX-42",
+      "VFX-43",
+      "VFX-44",
+      "VFX-45",
+      "VFX-46",
+      "VFX-47",
+      "VFX-48",
+      "VFX-49",
+      "VFX-50",
+      "AFX-06",
+      "AFX-07",
+      "AFX-08",
+      "AFX-09",
+      "AFX-10",
+      "AFX-31",
+      "AFX-32",
+      "AFX-33",
+      "AFX-34",
+      "AFX-35",
+      "AFX-41",
+      "AFX-42",
+      "AFX-43",
+      "AFX-44",
+      "AFX-45",
+      "AFX-46",
+      "AFX-47",
+      "AFX-48",
+      "AFX-49",
+      "AFX-50",
+      "TFX-31",
+      "TFX-32",
+      "TFX-33",
+      "TFX-34",
+      "TFX-35",
+      "TFX-36",
+      "TFX-37",
+      "TFX-38",
+      "TFX-39",
+      "TFX-40",
+      "TFX-41",
+      "TFX-42",
+      "TFX-43",
+      "TFX-44",
+      "TFX-45",
+      "TFX-46",
+      "TFX-47",
+      "TFX-48",
+      "TFX-49",
+      "TFX-50",
+      "ARX-31",
+      "ARX-32",
+      "ARX-33",
+      "ARX-34",
+      "ARX-35",
+      "ARX-36",
+      "ARX-37",
+      "ARX-38",
+      "ARX-39",
+      "ARX-40",
+      "ARX-41",
+      "ARX-42",
+      "ARX-43",
+      "ARX-44",
+      "ARX-45",
+      "ARX-46",
+      "ARX-47",
+      "ARX-48",
+      "ARX-49",
+      "ARX-50"
+    ],
+    "productionHttp": {
+      "origin": "http://127.0.0.1:5000",
+      "csp": true,
+      "catalogCounts": {
+        "creativeVideoPresets": 50,
+        "creativeAudioPresets": 50,
+        "creativeTextPresets": 50,
+        "creativeReactivePresets": 50
+      },
+      "scripts": [
+        {
+          "name": "creative-finish",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-temporal",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "creative-video-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "text-finish",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "lyric-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "lyric-word-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "titles",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "visual-layers",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "reactive-finish",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "reactive-fx",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "reactive-renderer",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "audio-prepared-mix",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "audio-preset-audition",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "audio-preset-worklet-node",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "audio",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "preset-browser",
+          "status": 200,
+          "cache": "no-cache"
+        },
+        {
+          "name": "project",
+          "status": 200,
+          "cache": "no-cache"
+        }
+      ]
+    },
+    "preparedAudioPresets": 20,
+    "audioPreviewAndExport": "same Python PCM engine, cached buffer playback by project time",
+    "preparedAudioEdits": "pause and invalidate; prepare again before playback",
+    "softPump": "selected dependency without enabling independent channel sidechain",
+    "reactiveFeatures": [
+      "RMS",
+      "FFT centroid",
+      "12 chroma columns",
+      "tonality"
+    ],
+    "reactiveFeatureColumns": 15,
+    "timedWordPresetsRequireActualWords": true,
+    "captionBypassPreservesNativeTemplates": true,
+    "textMorphFitsExistingBounds": true,
+    "initialWorkletOffset": "atomic constructor processorOptions",
+    "limitations": [
+      "Prepared audio keeps complete input/output PCM buffers and can take time on long or multichannel projects",
+      "Audio edits require preparation before playback; no live knob processing guarantee for the twenty prepared presets",
+      "Output duration is unchanged; tails do not automatically extend the project",
+      "Heavy Canvas effects add preview cost; no real-time FPS guarantee",
+      "Physical phone",
+      "Safari/iOS",
+      "Firefox",
+      "Public tunnel",
+      "Spoken screen-reader output"
+    ]
+  }
+}

@@ -7,6 +7,7 @@ async function applyProjectPackage(project, files, {open = openStudioProject, en
       throw new Error('Paket ses kaynağı eşleşmiyor.');
   }
   const previous = copyProject(store.state), oldFiles = {...engine.files};
+  const history={past:[...store.past],future:[...store.future]};
   let opened = false;
   try {
     open(project);
@@ -21,7 +22,7 @@ async function applyProjectPackage(project, files, {open = openStudioProject, en
     for (const kind of Object.keys(previous.tracks)) if (oldFiles[kind]) {
       try { await engine.loadAudio(kind, oldFiles[kind]); } catch { failed.push(kind); }
     }
-    store.replace(previous); store.past = []; store.future = []; store.notify();
+    store.replace(previous); store.past = history.past; store.future = history.future; store.notify();
     throw new Error(error.message + (failed.length ? ' Önceki ses dosyalarını yeniden bağlayın.' : ' Önceki proje korundu.'));
   }
 }
@@ -58,8 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (packageCancel) packageCancel.addEventListener('click', () => abort?.abort());
   const saveBtn = el('savePackageBtn');
   if (saveBtn) saveBtn.addEventListener('click', () => run(async signal => {
-    projectStore.commit();
-    const project = copyProject(projectStore.state), files = {...audioEngine.files};
+    const project = projectStore.snapshot(), files = {...audioEngine.files};
     const form = new FormData(); form.append('project', JSON.stringify(project));
     for (const kind of Object.keys(project.tracks)) if (project.tracks[kind].source) {
       const file = files[kind], source = project.tracks[kind].source;

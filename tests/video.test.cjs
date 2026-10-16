@@ -27,7 +27,7 @@ module.exports=(async()=>{
   const schema=JSON.parse(fs.readFileSync(path.join(root,'static/project-schema.json'),'utf8'));
   const defaults=section=>Object.fromEntries(Object.entries(schema[section]).map(([key,s])=>[key,s.default]));
   const store=new EventTarget();store.state={videoClips:[],background:defaults('background'),video:defaults('video'),output:defaults('output'),effects:defaults('effects')};
-  const doc={hidden:false,handlers:{},getElementById:el,createElement:()=>new Video(),
+  const doc={hidden:false,handlers:{},getElementById:el,createElement:tag=>tag==='canvas'?{getContext:()=>ctx2d,width:0,height:0}:new Video(),
     addEventListener(type,fn){this.handlers[type]=fn;},dispatchEvent(){}};
   const main={events:{},on(type,fn){this.events[type]=fn;},isPlaying(){return playing;}};
   const audio={visualSignal:()=>null,updateAudioReactive(){},wsMain:main,stopAll(){},mediaMain:{readyState:4,seeking:false,addEventListener(){}},getProjectTime:()=>time};
@@ -38,12 +38,19 @@ module.exports=(async()=>{
     clear(){}
   }
   class ClipPreview {constructor(){this.entries=[];}clear(){} }
-  const context=vm.createContext({SceneRenderer,ClipPreview,document:doc,window:{},projectStore:store,audioEngine:audio,projectDuration:()=>10,
+  class VisualLayerMedia {constructor(){this.entries=new Map();}restore(){}sync(){}isReady(){return true;}}
+  const context=vm.createContext({PROJECT_SCHEMA:schema,SceneRenderer,ClipPreview,VisualLayerMedia,document:doc,window:{},projectStore:store,audioEngine:audio,projectDuration:()=>10,
+    validateVideoTimeRemap:()=>defaults('videoTimeRemap'),
     performance:{now:()=>nowMs},Uint8Array,Float32Array,Event,CustomEvent:class extends Event {},
     FormData:class {append(){}},
     requestAnimationFrame(fn){const id=++rafSerial;rafs.set(id,fn);return id;},cancelAnimationFrame(id){rafs.delete(id);},
     fetch(url){return new Promise(resolve=>pending.push({url,resolve}));}});
+  const projectCode=fs.readFileSync(path.join(root,'static/js/project.js'),'utf8');
+  vm.runInContext(projectCode.slice(projectCode.indexOf('function videoPaceIntegral'),projectCode.indexOf('function projectFields')),context);
+  vm.runInContext(fs.readFileSync(path.join(root,'static/js/video-time.js'),'utf8'),context);
+  vm.runInContext(fs.readFileSync(path.join(root,'static/js/video-time-sampler.js'),'utf8'),context);
   vm.runInContext(fs.readFileSync(path.join(root,'static/js/frame-renderer.js'),'utf8'),context);
+  for(const name of ['creative-video','creative-temporal','temporal-media'])vm.runInContext(fs.readFileSync(path.join(root,`static/js/${name}.js`),'utf8'),context);
   vm.runInContext(fs.readFileSync(path.join(root,'static/js/video.js'),'utf8'),context);
   const api=vm.runInContext('({VideoPreview,PreviewAdaptive,videoPosition,videoDrift,VHS_LUT,videoTiming,videoOutputSize,videoRect,videoColor})',context);
   assert.equal(api.videoPosition(5.25,2),1.25);
@@ -64,7 +71,10 @@ module.exports=(async()=>{
   time=1.5;main.events.seeking();assert.equal(preview.video.currentTime,1.5);
   playing=false;main.events.pause();assert.equal(preview.video.paused,true);
   let before=paints;store.state.background.vhs=true;store.dispatchEvent(new Event('change'));
-  assert.ok(paints>before); // effect changes redraw even when paused
+  const drawFrame=preview.drawFrame;assert.ok(drawFrame);assert.equal(paints,before);
+  store.dispatchEvent(new Event('change'));assert.equal(preview.drawFrame,drawFrame);
+  rafs.get(drawFrame)();rafs.delete(drawFrame);
+  assert.ok(paints>before); // paused effect edits coalesce into the next frame
   playing=true;doc.hidden=true;doc.handlers.visibilitychange();assert.equal(preview.video.paused,true);
   doc.hidden=false;doc.handlers.visibilitychange();assert.equal(preview.video.paused,false);
   audio.mediaMain.readyState=2;preview.sync();assert.equal(preview.video.paused,true);
@@ -109,6 +119,7 @@ module.exports=(async()=>{
   for(let i=0;i<8;i++)await Promise.resolve();
   preview.video.events.loadeddata();
   assert.equal(preview.ready,true);assert.equal(preview.video.src,'/retry');
+  if(preview.drawFrame){const id=preview.drawFrame;rafs.get(id)();rafs.delete(id);}
   preview.stopFrames();assert.equal(frames.size,0);assert.equal(rafs.size,0);
   const adaptive=new api.PreviewAdaptive();
   const bad={valid:true,targetFps:60,fps:20,dropRatio:.1,drawMs:20};

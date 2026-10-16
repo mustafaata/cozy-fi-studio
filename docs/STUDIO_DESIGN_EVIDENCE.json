@@ -1,0 +1,200 @@
+{
+  "date": "2026-10-14",
+  "references": {
+    "collection": "https://github.com/VoltAgent/awesome-design-md",
+    "snapshot": "f6961238d5cddcf8042a74a70fc400ec67181abb",
+    "selected": [
+      "Linear",
+      "ElevenLabs"
+    ],
+    "adaptation": "Productivity-oriented editing surfaces and contrast, not a reproduction of marketing layouts or brand identities."
+  },
+  "implementation": [
+    "Right selected-source editor with full-width timeline on desktop",
+    "Single-column responsive layout",
+    "Separate Kurgu workspace mode",
+    "Context-aware local tool navigator",
+    "Ctrl/Meta+K local command search with Turkish/ASCII aliases",
+    "Added audio channels included in search",
+    "Native modal keyboard containment, Escape dismissal and opener focus restoration",
+    "Underlying monitor/trim shortcuts isolated from the modal",
+    "Existing editor nodes and history owners retained",
+    "Editing before file import controls",
+    "Native audio file picker from the empty state",
+    "Aligned audio labels and group locks",
+    "Critical pre-paint colors matching both palettes",
+    "Explicit auxiliary container for layer and media editors",
+    "Visual editor receives its container through its constructor",
+    "Horizontal clip selector with full accessible names and hover titles",
+    "First montage fields visible in the initial desktop inspector viewport"
+  ],
+  "tests": {
+    "javascriptPassed": 249,
+    "browserDistinctPassed": 27,
+    "waitressWithCsp": {
+      "controllerScenarios": [
+        "test_marker_zoom_drag_cancel_keyboard_and_value_editor",
+        "test_numeric_escape_cancel_precision_and_readonly_warp",
+        "test_slip_numeric_scrub_updates_draft_and_escape_restores",
+        "test_selected_video_source_clocks_precision_and_select_shortcut",
+        "test_slider_units_fill_overlay_limits_and_choice_semantics",
+        "test_waveform_snap_pixel_radius_and_wheel_scroll_contract",
+        "test_unrelated_volume_change_keeps_clip_controls_and_viewport_stable",
+        "test_precision_source_metadata_bounds_and_focused_refresh",
+        "test_marker_delete_keeps_focus_and_announces_last_removal",
+        "test_frame_scrub_survives_lyric_row_replacement_and_cancels",
+        "test_unit_mirrors_preserve_readonly_refresh_and_visible_validation",
+        "test_db_silence_scrub_starts_quietly_and_keeps_full_gain_range",
+        "test_short_clip_frames_respect_representable_bounds_without_changing_seconds",
+        "test_precision_fractional_boundaries_remain_valid_in_frames",
+        "test_precision_negative_pixel_axis_and_unit_switch_preserve_geometry"
+      ],
+      "designScenarios": [
+        "test_layout_prioritizes_timeline_and_selected_editor_at_all_widths",
+        "test_search_reveals_existing_tool_and_preserves_project_history",
+        "test_search_includes_added_channel_and_local_navigator_follows_context",
+        "test_dialog_keyboard_focus_and_audio_empty_state"
+      ]
+    },
+    "wsgiWithCsp": [
+      "test_layout_modes_themes_and_unique_controls",
+      "test_extra_channel_uses_current_workspace",
+      "test_main_montage_commands_clock_reconnect_and_lyrics",
+      "test_sequence_mixed_create_local_edit_move_history_dissolve_and_reopen",
+      "test_video_keyframes_inspector_units_precision_and_reopen",
+      "test_word_timing_numbers_keyboard_stamps_save_and_reopen",
+      "test_audio_routing_authoring_automation_locks_history_and_responsive",
+      "test_visual_layer_canvas_drafts_move_resize_keyboard_snapshot_and_external_cancel"
+    ],
+    "failed": 0,
+    "newDesignChecks": [
+      "Five widths and both themes in five workspace modes",
+      "Desktop editor/preview/timeline geometry",
+      "Unique control IDs",
+      "Dynamic audio channel navigation",
+      "Search empty and matching results",
+      "Video keyframe navigation",
+      "Project and undo history unchanged by navigation",
+      "Keyboard focus wrap and Escape restoration",
+      "M and trim shortcuts do not change the underlying project",
+      "Native audio file selection",
+      "Body/secondary text contrast >=4.5:1",
+      "Focus and form boundary contrast >=3:1",
+      "First montage field is inside the initial inspector viewport"
+    ]
+  },
+  "coldProductionCheck": {
+    "server": "Waitress with actual CSP",
+    "cacheDisabled": true,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 256000,
+    "uploadBytesPerSecond": 128000,
+    "cases": [
+      {
+        "width": 1440,
+        "theme": "dark",
+        "samples": [
+          {
+            "cls": 0,
+            "width": 1440,
+            "scrollWidth": 1440,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0,
+            "width": 1440,
+            "scrollWidth": 1440,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      },
+      {
+        "width": 375,
+        "theme": "dark",
+        "samples": [
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      },
+      {
+        "width": 375,
+        "theme": "light",
+        "samples": [
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          },
+          {
+            "cls": 0,
+            "width": 375,
+            "scrollWidth": 375,
+            "navCount": 1,
+            "fxBeforeTools": true
+          }
+        ],
+        "errors": [],
+        "cspViolations": []
+      }
+    ]
+  },
+  "responsive": {
+    "widths": [
+      320,
+      375,
+      768,
+      1024,
+      1440
+    ],
+    "themes": [
+      "dark",
+      "light"
+    ],
+    "horizontalPageOverflow": false
+  },
+  "fixesFoundDuringVerification": [
+    "Search input Escape cleared text instead of dismissing the dialog",
+    "Backward Tab traversal could leave dialog content",
+    "Default channel headers stacked lock controls and clipped the third channel",
+    "Layer/media editor prepends put auxiliary tools before the primary montage form",
+    "Stacked clip choices pushed the first montage field below the initial viewport"
+  ],
+  "localPreview": "http://127.0.0.1:5000",
+  "notVerified": [
+    "physical phone",
+    "Safari/iOS",
+    "Firefox",
+    "network tunnel",
+    "screen reader speech output",
+    "every possible feature combination"
+  ],
+  "testInfrastructure": {
+    "issue": "A port-0 listener selected browser-blocked port 2049 before page load.",
+    "resolution": "Waitress test listeners bind directly in the private/dynamic range; browser port restrictions remain enabled."
+  },
+  "previewVerification": {
+    "status": 200,
+    "cspPresent": true,
+    "currentTemplate": true
+  }
+}

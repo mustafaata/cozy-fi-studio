@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import sys
 import threading
+from lyrics import LYRIC_WHITESPACE
 
 from settings import MODEL_DIR
 MODELS = ("large-v3-turbo", "large-v3", "small", "base")
@@ -57,6 +58,25 @@ def prepare(name):
     return WhisperModel(str(MODEL_DIR / name), device="cpu", compute_type="int8", cpu_threads=min(8, os.cpu_count() or 2))
 
 
+def recognized_word_times(group, start, end):
+    """ASR pieces may split punctuation or join several words; map them to text tokens."""
+    from lyrics import LYRIC_WORD_PATTERN
+    joined = "".join(word.word for word in group)
+    pieces, cursor = [], 0
+    for word in group:
+        pieces.append((cursor, cursor+len(word.word), word))
+        cursor += len(word.word)
+    result = []
+    for match in LYRIC_WORD_PATTERN.finditer(joined):
+        owners = [word for a, b, word in pieces if a < match.end() and b > match.start() and joined[max(a, match.start()):min(b, match.end())].strip(LYRIC_WHITESPACE)]
+        a = round(max(start, min(word.start for word in owners)), 3)
+        b = round(min(end, max(word.end for word in owners)), 3)
+        if b-a < .001-1e-8 or result and a < result[-1]["end"]-1e-7:
+            return None
+        result.append(dict(text=match.group(), start=a, end=b))
+    return result
+
+
 def segment_lines(segment, duration, serial):
     """Short readable cues; confidence is a model score, not a correctness guarantee."""
     if segment.no_speech_prob > .98 and segment.avg_logprob < -1.5:
@@ -64,7 +84,7 @@ def segment_lines(segment, duration, serial):
     words = list(segment.words or [])
     if not words:
         start, end = max(0, segment.start), min(duration, segment.end)
-        text = segment.text.strip()
+        text = segment.text.strip(LYRIC_WHITESPACE)
         return [dict(id=f"auto_{serial}", text=text[:500], start=start, end=end,
                      confidence=max(0, min(1, math.exp(segment.avg_logprob))), review=True)] if text and end-start >= .01 else []
     groups, group = [], []
@@ -78,11 +98,14 @@ def segment_lines(segment, duration, serial):
     rows = []
     for group in groups:
         start, end = max(0, group[0].start), min(duration, group[-1].end)
-        text = "".join(w.word for w in group).strip()
+        text = "".join(w.word for w in group).strip(LYRIC_WHITESPACE)
         confidence = sum(w.probability for w in group) / len(group)
         if text and end-start >= .01:
             rows.append(dict(id=f"auto_{serial}_{len(rows)}", text=text[:500], start=round(start, 3), end=round(end, 3),
                              confidence=float(round(max(0, min(1, confidence)), 3)), review=bool(confidence < .75 or segment.no_speech_prob > .4 or segment.avg_logprob < -1 or segment.compression_ratio > 3)))
+            timing = recognized_word_times(group, rows[-1]["start"], rows[-1]["end"])
+            if timing and len(text) <= 500:
+                rows[-1]["words"] = timing
     return rows
 
 
@@ -135,6 +158,12 @@ def transcribe(source, name, language, output, reference_path=None):
                 local = SimpleNamespace(**{key:getattr(segment,key) for key in ("no_speech_prob","compression_ratio","avg_logprob","text","start","end")}, words=owned)
                 rows = segment_lines(local, end-begin, serial)
                 for row in rows:
+                    if "words" in row:
+                        for word in row["words"]:
+                            word["start"] = round(max(core_start, begin+word["start"]), 3)
+                            word["end"] = round(min(core_end, begin+word["end"]), 3)
+                        if any(w["end"]-w["start"] < .001-1e-8 for w in row["words"]):
+                            del row["words"]
                     row["start"] = round(max(core_start, begin+row["start"]),3)
                     row["end"] = round(min(core_end, begin+row["end"]),3)
                 lines.extend(rows)

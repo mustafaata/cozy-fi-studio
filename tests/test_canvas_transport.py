@@ -2,6 +2,7 @@ import io
 from pathlib import Path
 import tempfile
 import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -23,6 +24,24 @@ def frame(width=16, height=16):
 
 
 class CanvasTransportTests(unittest.TestCase):
+    def test_cancellation_interrupts_a_stalled_scene_initialization(self):
+        from playwright.sync_api import sync_playwright, Error
+        cancel=threading.Event();sink=self.sink(cancel=cancel)
+        with scene_origin({},sink) as origin,sync_playwright() as runtime:
+            browser=runtime.chromium.launch(channel='chromium')
+            try:
+                page=browser.new_page();page.goto(origin)
+                self.assertEqual(requests.get(origin+'cancelled',timeout=5).json(),{'cancelled':False})
+                # A never-resolving font/image stands in for the original initialization stall.
+                page.evaluate('()=>{createExportScene=()=>new Promise(()=>{});}')
+                timer=threading.Timer(.3,cancel.set);timer.start();start=time.monotonic()
+                try:
+                    with self.assertRaisesRegex(Error,'iptal'):
+                        page.evaluate('initializeExportScene({})')
+                finally:timer.cancel()
+                self.assertLess(time.monotonic()-start,3)
+            finally:browser.close()
+
     def sink(self, count=8, cancel=None):
         sink = FrameSink(16, 16, count, cancel)
         sink.process = SimpleNamespace(stdin=io.BytesIO())
@@ -59,11 +78,42 @@ class CanvasTransportTests(unittest.TestCase):
             self.assertEqual(requests.get(origin+'unknown', timeout=5).status_code, 404)
             self.assertEqual(requests.post(origin+'frames', data=frame(), timeout=5).status_code, 403)
             self.assertEqual(requests.post(origin+'frames', data=frame(), headers=headers, timeout=5).status_code, 204)
-            self.assertEqual(requests.post(origin+'frames', data=frame(), headers=headers, timeout=5).status_code, 409)
+            self.assertEqual(requests.post(origin+'frames', data=frame(), headers=headers, timeout=5).status_code, 204)
+            self.assertEqual(sink.received, 1)
+            self.assertEqual(requests.post(origin+'frames', data=frame()*2, headers=headers, timeout=5).status_code, 409)
             headers['X-Frame-Index'] = '1'
             self.assertEqual(requests.post(origin+'frames', data=b'x'*(sink.max_bytes+1), headers=headers, timeout=5).status_code, 413)
             self.assertEqual(requests.post(origin+'frames', data=frame(18), headers=headers, timeout=5).status_code, 400)
             self.assertEqual(requests.post(origin+'frames', data=frame(), headers=headers, timeout=5).status_code, 204)
+            headers['X-Frame-Index'] = '0'
+            self.assertEqual(requests.post(origin+'frames', data=frame(), headers=headers, timeout=5).status_code, 409)
+            self.assertEqual(sink.process.stdin.getvalue(), frame()[4:]*2)
+
+    def test_browser_recovers_lost_acknowledgement_without_duplicate_frames(self):
+        from playwright.sync_api import sync_playwright
+
+        sink = self.sink(count=2)
+        with scene_origin({}, sink) as origin, sync_playwright() as runtime:
+            browser = runtime.chromium.launch(channel='chromium')
+            try:
+                page = browser.new_page()
+                page.goto(origin)
+                page.evaluate('''async bytes => {
+                    const send = window.fetch.bind(window);
+                    let calls = 0;
+                    window.fetch = async (...args) => {
+                        const response = await send(...args);
+                        if (++calls === 1) throw new TypeError('Simulated lost acknowledgement');
+                        return response;
+                    };
+                    await uploadFrameBatch(0, new Uint8Array(bytes));
+                    await uploadFrameBatch(1, new Uint8Array(bytes));
+                    if (calls !== 3) throw new Error('Expected one retry');
+                }''', list(frame()))
+                self.assertEqual(sink.received, 2)
+                self.assertEqual(sink.process.stdin.getvalue(), frame()[4:]*2)
+            finally:
+                browser.close()
 
     def test_source_preparation_reuses_repeated_clips_and_limits_end(self):
         project = validate_project(dict(version=1, tracks={'main': {}}))

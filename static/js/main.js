@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (slider.id === 'reverbSlider') {
       const b = el('reverbBadge'); if (b) b.textContent = `${Math.round(slider.value)}%`;
     } else if (slider.id === 'bassSlider') {
-      const b = el('bassBadge'); if (b) b.textContent = `${Number(slider.value) > 0 ? '+' : ''}${Math.round(slider.value)} dB`;
+      const b = el('bassBadge'); if (b) b.textContent = `+${Number(slider.value).toFixed(1)} dB`;
     }
   };
 
@@ -95,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const missing = Object.keys(projectStore.state.tracks).some(kind => projectStore.state.tracks[kind].source && !engine.files[kind]);
     playBtn.disabled = !engine.files.main || missing;
     const videoReady = typeof videoPreview !== 'undefined' && videoPreview?.ready && !videoPreview.busy;
-    renderBtn.disabled = renderBusy || !engine.files.main || missing || !videoReady;
+    renderBtn.disabled = renderBusy || !engine.files.main || missing || !videoReady || !videoPreview.visuals.isReady();
+    document.dispatchEvent(new Event('studio-render-state'));
   };
 
   const updateTimeReadout = () => {
@@ -275,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.addEventListener('keydown', (e) => {
     const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+    if(e.defaultPrevented || active && (['INPUT','TEXTAREA','SELECT'].includes(active.tagName) || active.isContentEditable)) return;
     if (e.key === 'm' || e.key === 'M') {
       if (!e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
@@ -296,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const readSettings = () => ({
     speed: Number(el('speedSlider').value),
-    bass: Number(el('bassSlider').value),
+    bass: bassGainPercent(Number(el('bassSlider').value)),
     reverb: Number(el('reverbSlider').value),
     preservePitch: el('vinylToggle').checked,
     tone: currentTone()
@@ -316,12 +317,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const bassVal = el('bassSlider').value;
     el('bassOut').value = bassVal;
     const bassBadge = el('bassBadge');
-    if (bassBadge) bassBadge.textContent = (bassVal >= 0 ? '+' : '') + bassVal + ' dB';
+    if (bassBadge) bassBadge.textContent = '+' + Number(bassVal).toFixed(1) + ' dB';
 
     // Radyo modunda bas kaydırıcısı bir işe yaramıyor.
     const tone = currentTone();
     const bassSlider = el('bassSlider');
     bassSlider.disabled = tone === 'radio';
+    el('bassOut').disabled=bassSlider.disabled;
     const fxItem = bassSlider.closest('.fx-item') || bassSlider.closest('.fx');
     if (fxItem) {
       fxItem.classList.toggle('is-disabled', tone === 'radio');
@@ -886,13 +888,13 @@ document.addEventListener('DOMContentLoaded', () => {
     pollTimer = null;
   };
 
-  const pollJob = (jobId) => {
+  const pollJob = (jobId, complete = () => {}) => {
     renderBusy=true;refreshSelectionUi();renderSession.write(jobId);
     activeRenderId=jobId;cancelRenderBtn.classList.remove('hidden');cancelRenderBtn.disabled=false;
     stopPolling();
     const checkStatus = () => {
       fetch(`/status/${jobId}`)
-        .then((response) => response.json())
+        .then(async response=>{const job=await response.json();if(!response.ok||!['running','cancelling','done','cancelled','error'].includes(job.state))throw new Error(job.message||'Render durumu alınamadı.');return job;})
         .then((job) => {
           setProgress(job.progress || 0);
           if (job.state === 'running' || job.state === 'cancelling') {
@@ -915,6 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setProgress(0);
             setStatus(job.message || 'Render başarısız oldu.', job.state !== 'cancelled');
           }
+          complete(job);
         })
         .catch(() => {
           setStatus('Render durumu bekleniyor…', true);
@@ -924,55 +927,51 @@ document.addEventListener('DOMContentLoaded', () => {
     checkStatus();
   };
 
-  renderBtn.addEventListener('click', () => {
-    if (renderBusy) return;
-    const project = projectStore.state;
-    if (!engine.files.main) return setStatus('Ana şarkı bağlı değil.', true);
-    const missing = Object.keys(project.tracks).find(kind => project.tracks[kind].source && !engine.files[kind]);
-    if (missing) return setStatus('Kaynak dosya bağlı değil: ' + missing, true);
-    if (!project.background.asset || !videoPreview?.ready || videoPreview.busy) return setStatus('Görüntü hazır değil.', true);
+  window.isStudioRendering=()=>renderBusy;
+  window.renderStudioProject=async ({project=projectStore.snapshot(),files={...engine.files},sectionId=null,shouldCancel=()=>false}={}) => {
+    if (renderBusy) throw new Error('Bir çıktı hazırlanıyor. Tamamlanmasını bekleyin.');
+    project=validateProject(project);
+    if (!files.main) throw new Error('Ana şarkı bağlı değil.');
+    const missing = Object.keys(project.tracks).find(kind => project.tracks[kind].source && !files[kind]);
+    if (missing) throw new Error('Kaynak dosya bağlı değil: ' + missing);
+    if ((!project.background.asset&&!project.videoClips.length) || !videoPreview?.ready || videoPreview.busy) throw new Error('Görüntü hazır değil.');
     engine.stopAll();
     downloadLink.classList.add('hidden');
     downloadLink.removeAttribute('href');
     renderBusy = true;
-    renderBtn.disabled = true;
+    refreshSelectionUi();
     setProgress(3);
     setStatus('Dosyalar gönderiliyor…');
     const form = new FormData();
     form.append('project', JSON.stringify(project));
+    if(sectionId!==null)form.append('sectionId',sectionId);
     for (const kind of Object.keys(project.tracks)) {
-      if (engine.files[kind] && project.tracks[kind].source) form.append(kind + '_file', engine.files[kind]);
+      if (files[kind] && project.tracks[kind].source) form.append(kind + '_file', files[kind]);
     }
 
-    fetch('/render', { method: 'POST', body: form })
-      .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
-      .then(({ ok, body }) => {
-        if (!ok || !body.job_id) {
-          renderBusy = false;
-          refreshSelectionUi();
-          setProgress(0);
-          setStatus(body.message || 'Render başlatılamadı.', true);
-          return;
-        }
-        setStatus('Render sırada…');
-        pollJob(body.job_id);
-      })
-      .catch(() => {
-        renderBusy = false;
-        refreshSelectionUi();
-        setProgress(0);
-        setStatus('Sunucuya ulaşılamadı.', true);
-      });
-  });
+    try {
+      const response=await fetch('/render',{method:'POST',body:form}),body=await response.json();
+      if(!response.ok||!body.job_id)throw new Error(body.message||'Render başlatılamadı.');
+      setStatus('Render sırada…');
+      // The accepted job owns the busy state until polling reaches its completion.
+      const completion=new Promise(resolve=>pollJob(body.job_id,resolve));
+      if(shouldCancel())cancelRenderBtn.click();
+      return await completion;
+    } catch(error) {
+      renderBusy=false;refreshSelectionUi();setProgress(0);throw error;
+    }
+  };
+  renderBtn.addEventListener('click',()=>{window.renderStudioProject().catch(error=>setStatus(error.message,true));});
 
   el('vhsToggle').addEventListener('change', () => projectStore.update(project => { project.background.vhs = el('vhsToggle').checked; }));
   document.addEventListener('studio-error', event => setStatus(event.detail, true));
   document.addEventListener('studio-status', event => setStatus(event.detail));
   document.addEventListener('video-ready', refreshSelectionUi);
+  document.addEventListener('visual-media-ready', refreshSelectionUi);
   let lastBackgroundUrl = projectStore.state.background.url;
   projectStore.addEventListener('change', () => {
     const p = projectStore.state;
-    ['speed','bass','reverb'].forEach(key => { el(key + 'Slider').value = p.effects[key]; paintSlider(el(key + 'Slider')); });
+    ['speed','bass','reverb'].forEach(key => { el(key + 'Slider').value = key==='bass'?bassGainDb(p.effects[key]):p.effects[key]; paintSlider(el(key + 'Slider')); });
     el('vinylToggle').checked = p.effects.preservePitch;
     el('vhsToggle').checked = p.background.vhs;
     document.querySelectorAll('input[name="tone"]').forEach(radio => { radio.checked = radio.value === p.effects.tone; });

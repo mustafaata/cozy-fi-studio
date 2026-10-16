@@ -26,7 +26,7 @@ class YouTubeEndpointTests(unittest.TestCase):
                 }
             ]
         }
-        with patch("yt_dlp.YoutubeDL") as MockYdl:
+        with patch("app.SearchClient") as MockYdl:
             mock_inst = MagicMock()
             mock_inst.__enter__.return_value = mock_inst
             mock_inst.extract_info.return_value = mock_info
@@ -52,7 +52,7 @@ class YouTubeEndpointTests(unittest.TestCase):
             "uploader": "Rain Vibes",
             "webpage_url": "https://www.youtube.com/watch?v=xyz987",
         }
-        with patch("yt_dlp.YoutubeDL") as MockYdl:
+        with patch("app.SearchClient") as MockYdl:
             mock_inst = MagicMock()
             mock_inst.__enter__.return_value = mock_inst
             mock_inst.extract_info.return_value = mock_info
@@ -119,7 +119,7 @@ class YouTubeEndpointTests(unittest.TestCase):
         stream2.buffer.flush()
 
     def test_search_passes_quiet_logger(self):
-        with patch("yt_dlp.YoutubeDL") as MockYdl:
+        with patch("app.SearchClient") as MockYdl:
             mock_inst = MagicMock()
             mock_inst.__enter__.return_value = mock_inst
             mock_inst.extract_info.return_value = {"entries": []}
@@ -151,7 +151,7 @@ class YouTubeEndpointTests(unittest.TestCase):
         old_stderr = sys.stderr
         try:
             sys.stderr = app._SafeStream(BrokenStderr())
-            with patch("yt_dlp.YoutubeDL") as MockYdl:
+            with patch("app.SearchClient") as MockYdl:
                 mock_inst = MagicMock()
                 mock_inst.__enter__.return_value = mock_inst
                 mock_inst.extract_info.return_value = {"entries": []}

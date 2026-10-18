@@ -5,7 +5,7 @@ urllib3==2.8.0
 yt-dlp==2026.8.19
 pedalboard==0.9.25
 pydub==0.25.1
-numpy==2.2.6
+numpy==2.5.4
 scipy==1.15.3
 imageio-ffmpeg==0.6.0
 faster-whisper==1.2.1
